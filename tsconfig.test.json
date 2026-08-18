@@ -1,0 +1,8 @@
+{
+  // 루트 tsconfig는 tests/e2e를 제외합니다. 프로덕션 이미지는 devDependencies
+  // 없이 빌드되므로 vitest/playwright 타입을 찾지 못해 next build가 깨집니다.
+  // 로컬에서는 이 설정으로 테스트 코드까지 타입체크합니다. (pnpm typecheck)
+  "extends": "./tsconfig.json",
+  "include": ["tests/**/*.ts", "e2e/**/*.ts", "vitest.config.ts", "playwright.config.ts"],
+  "exclude": ["node_modules"]
+}
