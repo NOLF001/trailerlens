@@ -209,12 +209,21 @@ const MAX_COMMENT_CHARS = 1200;
 export async function analyzeCommentBatch(
   comments: BatchCommentInput[],
   video: VideoContext,
-  opts: { caller?: RawTextCaller; maxRetries?: number } = {},
+  opts: {
+    caller?: RawTextCaller;
+    maxRetries?: number;
+    mockNameMatchers?: DynamicNameMatchers;
+  } = {},
 ): Promise<CommentAnalysisResult[]> {
   if (comments.length === 0) return [];
 
   if (!opts.caller && isMockClaude()) {
-    return comments.map((c) => mockAnalyzeComment(c, video.durationSeconds));
+    // mockNameMatchers가 없으면 이 배치(최대 DEFAULT_BATCH_SIZE개)만으로
+    // 빈도를 계산합니다. 영상 댓글 전체를 넘길수록 더 정확해지므로,
+    // 파이프라인 쪽에서는 전체 댓글로 한 번 만들어 재사용합니다.
+    const names =
+      opts.mockNameMatchers ?? buildDynamicNameMatchers(video, comments.map((c) => c.text));
+    return comments.map((c) => mockAnalyzeComment(c, video.durationSeconds, names));
   }
 
   const caller = opts.caller ?? makeStructuredCaller(BATCH_JSON_SCHEMA, "low");
@@ -423,8 +432,133 @@ const RULES: KeywordRule[] = [
   },
 ];
 
-const CHARACTER_NAMES = /(리아|카일|ria|kyle|リア|カイル)/gi;
-const MEDIA_NAMES = /(aurora fall|오로라 폴|다크소울|엘든링|elden ring|dark souls|witcher|위쳐)/gi;
+// 시드 목록: 어떤 트레일러든 댓글에서 비교 대상으로 자주 언급되는 유명
+// 프랜차이즈/데모 캐릭터. 영상별로 뽑히는 동적 목록에 항상 더해집니다.
+const SEED_CHARACTER_NAMES = ["리아", "카일", "ria", "kyle", "リア", "カイル"];
+const SEED_MEDIA_NAMES = [
+  "aurora fall",
+  "오로라 폴",
+  "다크소울",
+  "엘든링",
+  "elden ring",
+  "dark souls",
+  "witcher",
+  "위쳐",
+];
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function namesToRegExp(names: string[]): RegExp {
+  return new RegExp(`(${names.map(escapeRegExp).join("|")})`, "gi");
+}
+
+const SEED_CHARACTER_RE = namesToRegExp(SEED_CHARACTER_NAMES);
+const SEED_MEDIA_RE = namesToRegExp(SEED_MEDIA_NAMES);
+
+export interface DynamicNameMatchers {
+  characterRe: RegExp;
+  mediaRe: RegExp;
+}
+
+const DEFAULT_NAME_MATCHERS: DynamicNameMatchers = {
+  characterRe: SEED_CHARACTER_RE,
+  mediaRe: SEED_MEDIA_RE,
+};
+
+// 트레일러 제목에 흔히 붙는 상투어. 이걸 걷어내고 남는 부분을 게임 이름
+// 후보로 씁니다 (예: "Aurora Fall — Official Reveal Trailer" → "Aurora Fall").
+const TITLE_BOILERPLATE =
+  /\b(official|reveal|announce(ment)?|teaser|trailer|gameplay|launch|overview|deep dive|release date|first look|walkthrough|4k|hdr|ps5|ps4|xbox(\s?series)?(\s?x|\s?s)?|pc|nintendo\s?switch)\b/gi;
+
+function extractTitleMediaName(title: string): string | null {
+  const cleaned = title
+    .replace(TITLE_BOILERPLATE, " ")
+    .replace(/[|:\-–—([\]).!?]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length >= 2 ? cleaned : null;
+}
+
+// 흔한 단어가 캐릭터 이름으로 오인되지 않도록 거르는 최소한의 불용어.
+// 완벽할 수 없는 휴리스틱이라, 목적은 "명백한 오탐만 줄이기"입니다.
+const LATIN_STOPWORDS = new Set([
+  "the", "this", "that", "and", "for", "with", "from", "just", "when", "what",
+  "game", "games", "trailer", "official", "looks", "look", "its", "im",
+  "cant", "dont", "wont", "youre", "theyre", "gonna", "wanna", "yeah", "okay",
+]);
+const KOREAN_STOPWORDS = new Set([
+  "진짜", "정말", "완전", "너무", "그냥", "제발", "이거", "저거", "여기",
+  "거기", "우리", "당신", "오늘", "내일", "이제", "근데", "그래서", "이건",
+  "저건", "같은", "조금", "많이", "이번", "다음", "처음", "마지막", "지금",
+]);
+
+/**
+ * 댓글 전체에서 반복 등장하는 고유명사 후보(캐릭터로 추정)를 뽑습니다.
+ * 영문은 대문자로 시작하는 단어, 한글은 2~4자 토큰의 등장 빈도를 셉니다.
+ * 우연히 반복되는 일반 단어를 배제할 수는 없어서, 등장 횟수 기준을
+ * 두는 것으로 오탐 가능성을 낮춥니다 (완벽한 개체명 인식이 아닙니다).
+ */
+function extractFrequentTokens(texts: string[]): string[] {
+  const counts = new Map<string, number>();
+  const latinRe = /\b[A-Z][a-zA-Z]{2,}\b/g;
+  const koreanRe = /[가-힣]{2,4}/g;
+
+  for (const text of texts) {
+    for (const raw of text.match(latinRe) ?? []) {
+      if (LATIN_STOPWORDS.has(raw.toLowerCase())) continue;
+      counts.set(raw, (counts.get(raw) ?? 0) + 1);
+    }
+    for (const raw of text.match(koreanRe) ?? []) {
+      if (KOREAN_STOPWORDS.has(raw)) continue;
+      counts.set(raw, (counts.get(raw) ?? 0) + 1);
+    }
+  }
+
+  return [...counts.entries()]
+    .filter(([word, count]) => (/[가-힣]/.test(word) ? count >= 3 : count >= 2))
+    .map(([word]) => word);
+}
+
+/**
+ * mock 모드에서 캐릭터/게임 이름 매칭에 쓸 정규식을 영상별로 만듭니다.
+ * 영상 제목에서 뽑은 게임 이름 + 댓글에서 반복 등장하는 고유명사 후보를
+ * 시드 목록에 더합니다. 배치 하나가 아니라 영상의 댓글 전체를 넘길수록
+ * 빈도 기반 추출 정확도가 올라갑니다.
+ */
+export function buildDynamicNameMatchers(
+  video: VideoContext,
+  allCommentTexts: string[],
+): DynamicNameMatchers {
+  const titleMedia = extractTitleMediaName(video.title);
+  const frequentCharacters = extractFrequentTokens(allCommentTexts);
+
+  const mediaNames = dedupe([...(titleMedia ? [titleMedia] : []), ...SEED_MEDIA_NAMES]);
+  const characterNames = dedupe([...frequentCharacters, ...SEED_CHARACTER_NAMES]);
+
+  return {
+    mediaRe: namesToRegExp(mediaNames),
+    characterRe: namesToRegExp(characterNames),
+  };
+}
+
+interface MockConfidenceSignals {
+  sentimentMatched: boolean;
+  hasTopics: boolean;
+  hasEmotions: boolean;
+  hasNames: boolean;
+  hasTimestamp: boolean;
+}
+
+/**
+ * 신호(감정/토픽/이름 언급/타임스탬프)가 많이 잡힐수록 신뢰도를 높입니다.
+ * 예전엔 뭐가 걸리든 0.55 고정이라 사실상 의미 없는 숫자였습니다.
+ */
+function computeMockConfidence(signals: MockConfidenceSignals): number {
+  const hits = Object.values(signals).filter(Boolean).length;
+  return Math.min(0.9, 0.35 + hits * 0.11);
+}
 
 /**
  * Deterministic heuristic analyzer used in mock mode. Produces the same shape
@@ -433,22 +567,28 @@ const MEDIA_NAMES = /(aurora fall|오로라 폴|다크소울|엘든링|elden rin
 export function mockAnalyzeComment(
   c: BatchCommentInput,
   durationSeconds: number,
+  names: DynamicNameMatchers = DEFAULT_NAME_MATCHERS,
 ): CommentAnalysisResult {
   const topics = new Set<Topic>();
   const emotions = new Set<Emotion>();
   let sentiment: Sentiment | null = null;
   let impressive = false;
   let concern = false;
+  let sentimentMatched = false;
 
   for (const rule of RULES) {
     if (!rule.re.test(c.text)) continue;
     rule.topics?.forEach((t) => topics.add(t));
     rule.emotions?.forEach((e) => emotions.add(e));
-    if (rule.sentiment && !sentiment) sentiment = rule.sentiment;
+    if (rule.sentiment && !sentiment) {
+      sentiment = rule.sentiment;
+      sentimentMatched = true;
+    }
     if (rule.impressive) impressive = true;
     if (rule.concern) concern = true;
   }
 
+  const hasTopics = topics.size > 0;
   if (impressive && concern) sentiment = "mixed";
   if (!sentiment) sentiment = emotions.size > 0 ? "positive" : "neutral";
   if (topics.size === 0) topics.add("other");
@@ -456,9 +596,17 @@ export function mockAnalyzeComment(
   const timestamps = parseTimestamps(c.text, durationSeconds).map((t) => t.seconds);
 
   const characters = dedupe(
-    (c.text.match(CHARACTER_NAMES) ?? []).map((s) => s.trim()),
+    (c.text.match(names.characterRe) ?? []).map((s) => s.trim()),
   );
-  const media = dedupe((c.text.match(MEDIA_NAMES) ?? []).map((s) => s.trim()));
+  const media = dedupe((c.text.match(names.mediaRe) ?? []).map((s) => s.trim()));
+
+  const confidence = computeMockConfidence({
+    sentimentMatched,
+    hasTopics,
+    hasEmotions: emotions.size > 0,
+    hasNames: characters.length > 0 || media.length > 0,
+    hasTimestamp: timestamps.length > 0,
+  });
 
   return {
     commentId: c.id,
@@ -472,7 +620,7 @@ export function mockAnalyzeComment(
       ? "특정 장면의 연출과 완성도에 강한 인상을 받았다고 언급함"
       : null,
     concernReason: concern ? "게임의 방향성 또는 품질 요소에 대한 우려를 표현함" : null,
-    confidence: 0.55,
+    confidence,
   };
 }
 

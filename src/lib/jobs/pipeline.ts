@@ -10,7 +10,7 @@
 //  7 보고서 생성        — deterministic aggregation + narratives + report JSON
 
 import { prisma } from "@/lib/db";
-import { isMockMode } from "@/lib/env";
+import { isMockMode, isMockClaude } from "@/lib/env";
 import { getVideoMeta } from "@/lib/youtube/metadata";
 import {
   collectCommentPage,
@@ -31,6 +31,7 @@ import { spamProbability } from "@/lib/analysis/spam";
 import {
   analyzeCommentBatch,
   generateNarratives,
+  buildDynamicNameMatchers,
   DEFAULT_BATCH_SIZE,
   type NarrativeInput,
 } from "@/lib/analysis/claude";
@@ -485,6 +486,16 @@ async function stepClaudeAnalysis(
     durationSeconds: video.durationSeconds,
   };
 
+  // mock 모드에서는 댓글 전체를 기준으로 한 번만 만들어 모든 배치에서
+  // 재사용합니다. 배치(12개)마다 새로 만들면 빈도 기반 캐릭터 추출의
+  // 표본이 너무 작아집니다.
+  const mockNameMatchers = isMockClaude()
+    ? buildDynamicNameMatchers(
+        videoCtx,
+        pending.map((c) => c.textOriginal),
+      )
+    : undefined;
+
   let failedCount = 0;
   for (let i = 0; i < pending.length; i += DEFAULT_BATCH_SIZE) {
     await checkCancel(analysisId);
@@ -499,6 +510,7 @@ async function stepClaudeAnalysis(
           isReply: c.isReply,
         })),
         videoCtx,
+        { mockNameMatchers },
       );
 
       await prisma.$transaction(

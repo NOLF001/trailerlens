@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   analyzeCommentBatch,
   batchAnalysisSchema,
+  buildDynamicNameMatchers,
   ClaudeAnalysisError,
   mockAnalyzeComment,
 } from "@/lib/analysis/claude";
@@ -116,5 +117,60 @@ describe("mockAnalyzeComment (deterministic fallback)", () => {
     expect(r.topics).toContain("purchase_intent");
     expect(r.sentiment).toBe("positive");
     expect(r.mentionedTimestampSeconds).toEqual([58]);
+  });
+
+  it("gives comments with more matched signals higher confidence", () => {
+    const rich = mockAnalyzeComment(
+      { id: "rich", text: "0:58 소름 돋았다ㅋㅋ 무조건 예약 구매!!", likeCount: 1, isReply: false },
+      222,
+    );
+    const bare = mockAnalyzeComment(
+      { id: "bare", text: "그냥 봤음", likeCount: 1, isReply: false },
+      222,
+    );
+    expect(rich.confidence).toBeGreaterThan(bare.confidence);
+    expect(bare.confidence).toBeGreaterThanOrEqual(0.35);
+    expect(rich.confidence).toBeLessThanOrEqual(0.9);
+  });
+
+  it("still catches the seed demo names with no dynamic context", () => {
+    const r = mockAnalyzeComment(
+      { id: "x", text: "카일 어디 갔어, Aurora Fall 실망이다", likeCount: 1, isReply: false },
+      222,
+    );
+    expect(r.mentionedCharacters).toContain("카일");
+    expect(r.mentionedGamesOrMedia.map((m) => m.toLowerCase())).toContain("aurora fall");
+  });
+});
+
+describe("buildDynamicNameMatchers (per-video mock name extraction)", () => {
+  it("derives the game name from the video title, stripping trailer boilerplate", () => {
+    const names = buildDynamicNameMatchers(
+      { title: "Wraithbound — Official Reveal Trailer", channelTitle: "Studio", durationSeconds: 200 },
+      [],
+    );
+    expect("이 게임 Wraithbound 실화냐".match(names.mediaRe)?.[0]).toBe("Wraithbound");
+  });
+
+  it("picks up a character name repeated across comments but not a one-off word", () => {
+    const names = buildDynamicNameMatchers(
+      { title: "Some Trailer", channelTitle: "Studio", durationSeconds: 200 },
+      [
+        "Marcus is back and he looks amazing",
+        "wait Marcus survived?? insane",
+        "cant believe Marcus is the villain now",
+        "Honestly this trailer was fine",
+      ],
+    );
+    expect("everyone talking about Marcus today".match(names.characterRe)?.[0]).toBe("Marcus");
+    expect("Honestly great trailer".match(names.characterRe)).toBeNull();
+  });
+
+  it("still includes the seed lists even when nothing dynamic is found", () => {
+    const names = buildDynamicNameMatchers(
+      { title: "Untitled", channelTitle: "Studio", durationSeconds: 200 },
+      [],
+    );
+    expect("카일 실망".match(names.characterRe)?.[0]).toBe("카일");
   });
 });
