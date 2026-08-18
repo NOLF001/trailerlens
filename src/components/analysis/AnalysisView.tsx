@@ -5,7 +5,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, CheckCircle2, Loader2, RotateCcw, Trash2, XCircle } from "lucide-react";
+import Link from "next/link";
+import {
+  Ban,
+  CheckCircle2,
+  Loader2,
+  MessagesSquare,
+  RotateCcw,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -94,6 +103,12 @@ export function AnalysisView({ id }: { id: string }) {
     return <ReportView analysisId={id} report={data.report} />;
   }
 
+  // 댓글/답글 수집(1~2단계)이 끝나면 그 뒤 단계(분석 등)가 실패하거나
+  // 취소돼도 이미 모은 댓글은 DB에 그대로 남아있습니다. 보고서가 안
+  // 나왔다고 그 기록까지 못 보게 막을 이유가 없어서 바로 열어줍니다.
+  const commentsCollected =
+    data.currentStep > 3 || (data.currentStep === 3 && data.stepProgress >= 1);
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Card>
@@ -179,6 +194,13 @@ export function AnalysisView({ id }: { id: string }) {
             {(data.status === "failed" || data.status === "canceled") && (
               <Button onClick={() => act("retry")}>
                 <RotateCcw aria-hidden /> 이어서 재시도
+              </Button>
+            )}
+            {commentsCollected && (
+              <Button variant="outline" asChild>
+                <Link href={`/analysis/${id}/comments`}>
+                  <MessagesSquare aria-hidden /> 수집된 댓글 보기
+                </Link>
               </Button>
             )}
             <Button variant="ghost" onClick={remove} className="ml-auto text-muted-foreground">
