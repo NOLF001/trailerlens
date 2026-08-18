@@ -1,0 +1,138 @@
+// TrailerLens Prisma schema (SQLite flavor — default for local dev).
+// For PostgreSQL, run `pnpm db:pg:schema` which generates
+// prisma/schema.postgres.prisma with provider = "postgresql".
+// JSON payloads are stored as String columns so the schema stays portable
+// between SQLite and PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id              String    @id // YouTube videoId
+  title           String
+  channelId       String
+  channelTitle    String
+  thumbnailUrl    String
+  durationSeconds Int
+  viewCount       BigInt?
+  likeCount       Int?
+  commentCount    Int? // count displayed by YouTube (may differ from collected)
+  publishedAt     DateTime?
+  isMock          Boolean   @default(false)
+  fetchedAt       DateTime  @default(now())
+
+  comments        Comment[]
+  analyses        Analysis[]
+  heatmapSegments HeatmapSegment[]
+}
+
+model Comment {
+  id                String   @id // YouTube commentId
+  videoId           String
+  parentId          String?
+  authorDisplayName String
+  authorChannelId   String?
+  textOriginal      String
+  likeCount         Int      @default(0)
+  publishedAt       DateTime
+  updatedAt         DateTime
+  isReply           Boolean  @default(false)
+
+  // enrichment (deterministic, computed in code)
+  detectedLanguage    String?
+  extractedTimestamps String? // JSON: number[] (seconds, clamped to duration)
+  normalizedText      String?
+  duplicateGroupId    String?
+  isDuplicateExtra    Boolean @default(false) // true = non-representative copy in a duplicate group
+  spamProbability     Float?
+
+  // Claude analysis (idempotent per comment)
+  analysisStatus            String    @default("pending") // pending | analyzed | failed | skipped
+  sentiment                 String? // positive | neutral | negative | mixed
+  emotions                  String? // JSON: string[]
+  topics                    String? // JSON: string[]
+  mentionedCharacters       String? // JSON: string[]
+  mentionedGamesOrMedia     String? // JSON: string[]
+  mentionedTimestampSeconds String? // JSON: number[]
+  impressiveReason          String?
+  concernReason             String?
+  confidence                Float?
+  analyzedAt                DateTime?
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@index([videoId, analysisStatus])
+  @@index([videoId, isReply])
+}
+
+model Analysis {
+  id     String @id @default(cuid())
+  videoId String
+  mode   String // quick | full | owner
+  status String @default("queued") // queued | running | completed | failed | canceling | canceled
+
+  currentStep  Int    @default(0) // 0..7 (7 steps, 0 = not started)
+  stepProgress Float  @default(0) // 0..1 within current step
+  error        String?
+  failedStep   Int?
+  checkpoint   String? // JSON: { pageToken?, phase?, ... } for resume
+  attempts     Int    @default(0)
+
+  reportJson       String? // final report payload for the UI
+  statsJson        String? // deterministic aggregates (raw + cleaned)
+  dataCompleteness String? // JSON: string[] warnings shown in the report header
+
+  heatmapSource String? // owner | manual | ytdlp | mock | none
+  ownerUserId   String? // Google account id when mode = owner
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  video  Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  scenes SceneCluster[]
+
+  @@index([videoId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model HeatmapSegment {
+  id        String   @id @default(cuid())
+  videoId   String
+  source    String // owner | manual | ytdlp | mock
+  startTime Float
+  endTime   Float
+  value     Float // normalized 0..1 relative intensity — NOT viewer counts
+  createdAt DateTime @default(now())
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, source])
+}
+
+model SceneCluster {
+  id            String  @id @default(cuid())
+  analysisId    String
+  rank          Int
+  startSec      Float
+  endSec        Float
+  mentionCount  Int     @default(0)
+  likeWeighted  Float   @default(0)
+  heatIntensity Float? // normalized 0..1 from heatmap, if available
+  topics        String? // JSON: string[]
+  summary       String? // short digest of representative comments
+  description   String? // scene description draft — user editable
+  reason        String? // why people replayed / reacted
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+}
