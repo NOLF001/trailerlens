@@ -1,14 +1,18 @@
 # Render 배포 청사진(Blueprint).
 #
-# Render 대시보드 → New → Blueprint → 이 저장소 선택 하면
-# 웹 서비스와 PostgreSQL이 이 파일대로 한 번에 만들어집니다.
+# Render 대시보드 → New → Blueprint → 이 저장소 선택.
 #
-# sync: false 로 표시된 값은 Render가 물어봅니다(비밀값이라 파일에 넣지 않습니다).
-#   YOUTUBE_API_KEY  — 유튜브 댓글 수집용
-#   SITE_PASSWORD    — 사이트 접근 암호 (비워두면 누구나 접근)
+# 데이터베이스는 일부러 여기에 넣지 않았습니다.
+# 블루프린트로 DB를 만들면 요금제 값이 어긋났을 때 유료 인스턴스가 생길 수 있어,
+# Render 화면에서 직접 Free를 선택해 만든 뒤 그 접속 문자열을 넣는 방식이 안전합니다.
+#   1) New → Postgres → Instance Type을 Free로 선택해 생성
+#   2) 만들어진 DB의 "Internal Database URL"을 복사
+#   3) 아래 DATABASE_URL 값으로 붙여넣기 (Render가 배포 시 물어봅니다)
 #
-# 참고: Docker 런타임을 쓰는 이유는 yt-dlp 실행이 필요하기 때문입니다.
-# 서버리스 환경에서는 앱이 yt-dlp를 자동으로 비활성화합니다.
+# sync: false 는 "파일에 담지 않고 Render가 물어보는 값"이라는 뜻입니다.
+#
+# Docker 런타임을 쓰는 이유: 유튜브 '가장 많이 다시 본 구간'을 가져오려면
+# yt-dlp 실행이 필요한데, 서버리스 환경에서는 앱이 이 기능을 자동으로 끕니다.
 
 services:
   - type: web
@@ -18,16 +22,16 @@ services:
     plan: free
     healthCheckPath: /
     envVars:
+      # Render에서 만든 Free Postgres의 Internal Database URL
       - key: DATABASE_URL
-        fromDatabase:
-          name: trailerlens-db
-          property: connectionString
+        sync: false
 
-      # 유튜브 실데이터 수집에 필요합니다.
+      # 유튜브 댓글 수집에 필요합니다.
       - key: YOUTUBE_API_KEY
         sync: false
 
-      # 접근 암호. 설정하면 모든 페이지·API에 Basic 인증이 걸립니다.
+      # 사이트 접근 암호. 설정하면 모든 페이지·API에 Basic 인증이 걸립니다.
+      # 비워두면 누구나 들어올 수 있으니 반드시 넣으세요.
       - key: SITE_PASSWORD
         sync: false
 
@@ -42,7 +46,7 @@ services:
       - key: MOCK_MODE
         value: "false"
 
-      # 유튜브 '가장 많이 다시 본 구간' 수집 (이미지에 yt-dlp 설치됨)
+      # 유튜브 최다 재생 구간 수집 (Docker 이미지에 yt-dlp가 설치돼 있습니다)
       - key: ENABLE_EXPERIMENTAL_YTDLP
         value: "true"
       - key: YTDLP_PATH
@@ -50,9 +54,3 @@ services:
 
       - key: NEXTAUTH_SECRET
         generateValue: true
-
-databases:
-  - name: trailerlens-db
-    plan: free
-    databaseName: trailerlens
-    user: trailerlens
