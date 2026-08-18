@@ -7,10 +7,14 @@ RUN corepack enable pnpm
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc* ./
 COPY prisma ./prisma
 COPY scripts ./scripts
-RUN pnpm install --frozen-lockfile
+# --prod: eslint/playwright/vitest 같은 개발 전용 도구를 빌드 이미지에서
+# 뺍니다. Render 무료 플랜(512MB)에서 pnpm install이 이 도구들까지 한꺼번에
+# 받다가 메모리 부족으로 죽었던 원인입니다. next build에 필요한 typescript,
+# tailwindcss, prisma 등은 package.json의 "dependencies"로 옮겨뒀습니다.
+RUN pnpm install --frozen-lockfile --prod
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
