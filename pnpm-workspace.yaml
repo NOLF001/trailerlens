@@ -8,3 +8,13 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+# pnpm 10 호환용. 위 allowBuilds는 pnpm 11+ 키라서, 구버전 pnpm이 잡히면
+# 승인 목록을 통째로 무시하고 ERR_PNPM_IGNORED_BUILDS로 설치를 실패시킵니다.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver
