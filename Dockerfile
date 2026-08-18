@@ -4,6 +4,13 @@ FROM node:22-alpine AS base
 # 프롬프트를 끄지 않으면 비대화형 빌드에서 corepack이 멈춥니다.
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable pnpm
+# pnpm 실행 파일 자체를 base 레이어에 미리 받아둡니다. 아래 deps/build/runner는
+# 전부 이 base에서 갈라져 나가는데, 여기서 안 받아두면 세 스테이지 각각
+# 컨테이너를 처음 시작할 때(런타임 포함!) pnpm이 "이 버전이 캐시에 없네" 하며
+# 다시 받으려 하고, 그 김에 lockfile 정합성까지 재검증하면서 devDependencies를
+# 포함한 전체 그래프를 네트워크로 다시 훑는 경우가 있었습니다. Render 무료
+# 플랜은 런타임도 512MB라 컨테이너가 뜨자마자 그걸로 OOM이 났습니다.
+RUN corepack prepare pnpm@11.21.0 --activate
 WORKDIR /app
 
 FROM base AS deps
@@ -21,8 +28,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Build against the PostgreSQL schema
 RUN node scripts/make-postgres-schema.mjs \
-  && pnpm prisma generate --schema prisma/schema.postgres.prisma \
-  && pnpm next build
+  && node_modules/.bin/prisma generate --schema prisma/schema.postgres.prisma \
+  && node_modules/.bin/next build
 
 FROM base AS runner
 ENV NODE_ENV=production
@@ -37,4 +44,8 @@ RUN apk add --no-cache yt-dlp \
 RUN yt-dlp --version
 COPY --from=build /app ./
 EXPOSE 3000
-CMD ["sh", "-c", "pnpm prisma db push --schema prisma/schema.postgres.prisma --skip-generate && pnpm next start"]
+# pnpm을 거치지 않고 node_modules/.bin의 실제 바이너리를 직접 실행합니다.
+# "pnpm prisma ..."처럼 pnpm 경유로 실행하면 매번 lockfile/스토어 상태를
+# 검증하는데, 그 과정에서 네트워크로 전체 의존성 그래프를 다시 훑는 게
+# 런타임 OOM의 원인이었습니다. 바이너리를 직접 부르면 이 과정이 아예 없습니다.
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --schema prisma/schema.postgres.prisma --skip-generate && node_modules/.bin/next start"]
