@@ -43,8 +43,8 @@ export function ReactionsSection({
         {/* 반응 유형 목록 */}
         <Card>
           <CardContent className="p-5">
-            <h2 className="text-section-title">어떤 반응이었나</h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            <h2 className="text-heading font-semibold">어떤 반응이었나</h2>
+            <p className="mt-1 text-caption text-muted-foreground">
               댓글 본문의 표현으로 분류했습니다. 한 댓글이 여러 유형에 들어갈 수
               있어 합이 100%를 넘습니다.
             </p>
@@ -63,10 +63,10 @@ export function ReactionsSection({
                       }`}
                     >
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-sm font-medium">
+                        <span className="text-body font-medium">
                           {REACTION_LABELS_KO[g.kind]}
                         </span>
-                        <span className="text-xs tabular-nums text-muted-foreground">
+                        <span className="text-caption tabular-nums text-muted-foreground">
                           {g.count.toLocaleString()}개 · {formatPercent(g.share)}
                         </span>
                       </div>
@@ -85,7 +85,7 @@ export function ReactionsSection({
               })}
             </ul>
 
-            <p className="mt-4 border-t border-border/70 pt-3 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-4 border-t border-border/70 pt-3 text-caption text-muted-foreground">
               분류 표현이 없는 댓글{" "}
               <strong className="text-foreground/80">
                 {hype.unclassifiedCount.toLocaleString()}개
@@ -101,10 +101,10 @@ export function ReactionsSection({
           <CardContent className="p-5">
             {group ? (
               <>
-                <h3 className="text-section-title">
+                <h3 className="text-heading font-semibold">
                   {REACTION_LABELS_KO[group.kind]} · {group.count.toLocaleString()}개
                 </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-caption text-muted-foreground">
                   {REACTION_DESCRIPTIONS_KO[group.kind]}
                 </p>
                 <div className="mt-4">
@@ -115,7 +115,7 @@ export function ReactionsSection({
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">분류된 반응이 없습니다.</p>
+              <p className="text-body text-muted-foreground">분류된 반응이 없습니다.</p>
             )}
           </CardContent>
         </Card>
@@ -124,11 +124,11 @@ export function ReactionsSection({
       {/* 가장 강한 반응 */}
       <Card>
         <CardContent className="p-5">
-          <h2 className="flex items-center gap-2 text-section-title">
+          <h2 className="flex items-center gap-2 text-heading font-semibold">
             <Quote className="size-4 text-primary" aria-hidden />
             가장 강하게 반응한 댓글
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-caption text-muted-foreground">
             표현 강도와 좋아요 수를 함께 반영해 정렬했습니다. 원문 그대로입니다.
           </p>
           <div className="mt-4">

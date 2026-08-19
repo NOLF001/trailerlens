@@ -35,11 +35,11 @@ import {
   type Topic,
 } from "@/lib/types";
 
-// 활성 탭은 배경 대신 primary 색으로 구분합니다(밝기 차이만으로는 눈에
-// 잘 안 띄어서). 트랙 자체는 옅게 둬서 탭 바가 별도의 무거운 카드처럼
-// 보이지 않게 합니다.
+// 진한 크림슨은 열광 지점 하이라이트 전용으로 남겨두고(활성 탭까지
+// 크림슨을 쓰면 "이 색이 무슨 뜻인지" 다시 흐려짐), 활성 탭은 accent
+// 색(보라, hover 상태와 같은 계열)의 배경 채움으로 구분합니다.
 const TAB_CLASS =
-  "gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none";
+  "gap-2 rounded-md px-4 py-2.5 text-body font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-none";
 
 export function ReportView({ analysisId, report }: { analysisId: string; report: Report }) {
   const [cleaned, setCleaned] = useState(true);
@@ -83,7 +83,7 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
             />
           ) : (
             <Card>
-              <CardContent className="p-10 text-center text-sm text-muted-foreground">
+              <CardContent className="p-10 text-center text-body text-muted-foreground">
                 이 보고서는 반응 분류 이전 버전입니다. 다시 분석하면 표시됩니다.
               </CardContent>
             </Card>
@@ -94,12 +94,12 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
         <TabsContent value="stats" className="mt-0 space-y-8 focus-visible:outline-none">
           <section aria-labelledby="overview-heading" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="overview-heading" className="text-section-title">
+              <h2 id="overview-heading" className="text-heading font-semibold">
                 댓글 반응 개요
               </h2>
               <div className="flex items-center gap-2">
                 <Switch id="cleaned-toggle" checked={cleaned} onCheckedChange={setCleaned} />
-                <Label htmlFor="cleaned-toggle" className="text-sm text-muted-foreground">
+                <Label htmlFor="cleaned-toggle" className="text-body text-muted-foreground">
                   {cleaned ? "정제 데이터 (중복·스팸 제거)" : "원본 데이터 (전체)"}
                 </Label>
               </div>
@@ -108,7 +108,7 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
           </section>
 
           <section aria-labelledby="topics-heading" className="space-y-4">
-            <h2 id="topics-heading" className="text-section-title">
+            <h2 id="topics-heading" className="text-heading font-semibold">
               주제별 반응
             </h2>
             <p className="text-caption">
@@ -119,7 +119,7 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
           </section>
 
           <section aria-labelledby="controversy-heading" className="space-y-4">
-            <h2 id="controversy-heading" className="text-section-title">
+            <h2 id="controversy-heading" className="text-heading font-semibold">
               논쟁 및 우려
             </h2>
             <p className="text-caption">
@@ -130,7 +130,7 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
           </section>
 
           <section aria-labelledby="scenes-heading" className="space-y-4">
-            <h2 id="scenes-heading" className="text-section-title">
+            <h2 id="scenes-heading" className="text-heading font-semibold">
               장면 클러스터 (원본)
             </h2>
             <p className="text-caption">
@@ -197,15 +197,15 @@ function SummaryHeader({ report }: { report: Report }) {
         </div>
 
         <div className="min-w-0 flex-1 space-y-6">
-          <h1 className="text-page-title text-balance">{v.title}</h1>
+          <h1 className="text-display font-bold text-balance">{v.title}</h1>
 
           {topMoment && (
             <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 py-4">
-              <div className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide text-primary/85">
+              <div className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide text-[#fb7185]">
                 <Flame className="size-3.5" aria-hidden />
                 가장 열광한 지점
               </div>
-              <div className="mt-1.5 text-3xl font-bold tabular-nums leading-none text-primary sm:text-4xl">
+              <div className="mt-1.5 text-hero font-bold tabular-nums text-primary">
                 {formatSeconds(topMoment.startSec)}–{formatSeconds(topMoment.endSec)}
               </div>
               <p className="mt-2 text-caption">
@@ -217,11 +217,11 @@ function SummaryHeader({ report }: { report: Report }) {
           )}
 
           {report.conclusion && (
-            <p className="text-body max-w-2xl">{report.conclusion}</p>
+            <p className="text-body-lg prose-measure">{report.conclusion}</p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 text-caption">
-            <Badge variant="muted" className="text-[11px]">
+            <Badge variant="muted" className="text-caption">
               {MODE_LABELS_KO[report.mode]}
             </Badge>
             <span>{new Date(report.generatedAt).toLocaleString("ko-KR")} 기준</span>
@@ -237,9 +237,9 @@ function SummaryHeader({ report }: { report: Report }) {
             />
           </dl>
 
-          <p className="flex flex-wrap items-center gap-1.5 text-caption-sm">
+          <p className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
             {v.isMock && (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="text-caption">
                 Mock 데이터
               </Badge>
             )}
@@ -248,7 +248,7 @@ function SummaryHeader({ report }: { report: Report }) {
               href={watchUrl(v.id)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+              className="text-link inline-flex items-center gap-1"
             >
               · YouTube에서 열기 <ExternalLink className="size-3" aria-hidden />
             </a>
@@ -282,7 +282,7 @@ function SourcePanel({ report, analysisId }: { report: Report; analysisId: strin
           </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Stat label="수집 구간 수" value={`${report.heatmap.segments.length}개`} />
             <Stat label="검출 피크" value={`${report.heatmap.peaks.length}개`} />
             <Stat label="영상 길이" value={formatSeconds(report.video.durationSeconds)} />
@@ -301,13 +301,13 @@ function SourcePanel({ report, analysisId }: { report: Report; analysisId: strin
         <CardContent>
           <ul className="space-y-2">
             {notices.map((n, i) => (
-              <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+              <li key={i} className="flex gap-2 text-body text-muted-foreground">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
                 {n}
               </li>
             ))}
             {notices.length === 0 && (
-              <li className="text-sm text-muted-foreground">기록된 제한 사항이 없습니다.</li>
+              <li className="text-body text-muted-foreground">기록된 제한 사항이 없습니다.</li>
             )}
           </ul>
         </CardContent>
@@ -320,7 +320,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-caption">{label}</dt>
-      <dd className="text-metric mt-1">{value}</dd>
+      <dd className="text-display mt-1 font-bold tabular-nums">{value}</dd>
     </div>
   );
 }
@@ -382,7 +382,7 @@ function OverviewGrid({ stats }: { stats: StatsVariant }) {
                 />
               ))}
             </div>
-            <ul className="mt-3 space-y-1.5 text-sm">
+            <ul className="mt-3 space-y-1.5 text-body">
               {langEntries.map((e) => (
                 <li key={e.lang} className="flex items-center gap-2">
                   <span
@@ -408,7 +408,7 @@ function OverviewGrid({ stats }: { stats: StatsVariant }) {
           <CardTitle>구성 요약</CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
             <Stat label="전체 댓글" value={stats.totalComments.toLocaleString()} />
             <Stat
               label="최상위 / 답글"
@@ -461,7 +461,7 @@ function TopicsTable({
       {stats.topics.slice(0, 12).map((t) => (
         <Card key={t.topic}>
           <CardContent className="space-y-2 p-4">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body">
               <span className="min-w-32 font-semibold">
                 {TOPIC_LABELS_KO[t.topic] ?? t.topic}
               </span>
@@ -471,7 +471,7 @@ function TopicsTable({
               <span className="tabular-nums text-muted-foreground">
                 영향력 {formatPercent(t.likeWeightedShare)}
               </span>
-              <span className="ml-auto flex items-center gap-2 text-xs tabular-nums">
+              <span className="ml-auto flex items-center gap-2 text-caption tabular-nums">
                 <span style={{ color: CHART.tealSoft }}>
                   긍정 {formatPercent(t.positiveShare)}
                 </span>
@@ -496,12 +496,12 @@ function TopicsTable({
               />
             </div>
             {summaries[t.topic] && (
-              <p className="text-sm leading-relaxed text-muted-foreground">
+              <p className="text-body text-muted-foreground prose-measure">
                 {summaries[t.topic]}
               </p>
             )}
             {t.relatedTimestamps.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5 text-caption">
                 <span className="text-muted-foreground">관련 타임스탬프:</span>
                 {t.relatedTimestamps.map((ts) => (
                   <button
@@ -534,7 +534,7 @@ function MetricBar({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-2 text-caption text-muted-foreground">
       <span className="w-20 shrink-0">{label}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
         <div
@@ -555,7 +555,7 @@ function MetricBar({
 function ControversyGrid({ report }: { report: Report }) {
   if (report.controversy.length === 0) {
     return (
-      <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-md border border-dashed p-6 text-center text-body text-muted-foreground">
         뚜렷한 논쟁·우려 신호가 관찰되지 않았습니다.
       </p>
     );
@@ -571,13 +571,13 @@ function ControversyGrid({ report }: { report: Report }) {
                 {c.count.toLocaleString()}개 · {formatPercent(c.share)}
               </Badge>
             </div>
-            <div className="flex gap-3 text-xs tabular-nums text-muted-foreground">
+            <div className="flex gap-3 text-caption tabular-nums text-muted-foreground">
               <span>긍정 {formatPercent(c.positiveShare)}</span>
               <span>부정 {formatPercent(c.negativeShare)}</span>
               <span>좋아요 가중 {c.likeWeighted.toFixed(1)}</span>
             </div>
             {c.summary && (
-              <p className="text-sm leading-relaxed text-muted-foreground">{c.summary}</p>
+              <p className="text-body text-muted-foreground prose-measure">{c.summary}</p>
             )}
           </CardContent>
         </Card>

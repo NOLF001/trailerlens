@@ -50,7 +50,7 @@ export function HeatmapUpload({ analysisId }: { analysisId: string }) {
   }
 
   return (
-    <div className="rounded-lg border border-dashed p-4 text-sm">
+    <div className="rounded-lg border border-dashed p-4 text-body">
       <button
         type="button"
         className="flex items-center gap-2 font-medium underline-offset-4 hover:underline"
@@ -62,7 +62,7 @@ export function HeatmapUpload({ analysisId }: { analysisId: string }) {
       </button>
       {open && (
         <div className="mt-3 space-y-2">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             JSON: <code>{`[{"startTime":189.9,"endTime":192.01,"value":1.0}]`}</code>{" "}
             · CSV: <code>start,end,value</code> 한 줄씩. 값은 자동으로 0~1 상대
             강도로 정규화됩니다.
@@ -73,13 +73,13 @@ export function HeatmapUpload({ analysisId }: { analysisId: string }) {
             onChange={(e) => setText(e.target.value)}
             placeholder='[{"startTime": 10, "endTime": 12, "value": 0.8}, ...]'
             aria-label="히트맵 데이터"
-            className="font-mono text-xs"
+            className="font-mono text-caption"
           />
           <Button size="sm" onClick={submit} disabled={busy || !text.trim()}>
             {busy && <Loader2 className="animate-spin" aria-hidden />}
             적용하고 보고서 다시 생성
           </Button>
-          {message && <p className="text-xs text-muted-foreground">{message}</p>}
+          {message && <p className="text-caption text-muted-foreground">{message}</p>}
         </div>
       )}
     </div>

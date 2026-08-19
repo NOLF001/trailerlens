@@ -35,7 +35,7 @@ export function HypeSection({ report }: { report: Report }) {
   if (moments.length === 0) {
     return (
       <Card>
-        <CardContent className="p-10 text-center text-sm text-muted-foreground">
+        <CardContent className="p-10 text-center text-body text-muted-foreground">
           열광 지점을 만들 근거가 없습니다. 최다 재생 구간 데이터도, 시점을 언급한
           댓글도 확보되지 않았습니다.
         </CardContent>
@@ -51,7 +51,7 @@ export function HypeSection({ report }: { report: Report }) {
         <Card className="overflow-hidden">
           <CardContent className="p-5 sm:p-6">
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <h2 className="text-section-title">영상 시간대별 열광도</h2>
+              <h2 className="text-heading font-semibold">영상 시간대별 열광도</h2>
               <p className="text-caption">
                 {hasHeatmap
                   ? "유튜브가 집계한 '가장 많이 다시 본 구간' + 댓글 시점 언급"
@@ -85,7 +85,7 @@ export function HypeSection({ report }: { report: Report }) {
 
       {/* 지점 선택 카드 — 1번은 primary, 나머지는 secondary */}
       <div>
-        <h2 className="mb-4 text-section-title">열광 지점 {moments.length}곳</h2>
+        <h2 className="mb-4 text-heading font-semibold">열광 지점 {moments.length}곳</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {moments.map((m) => (
             <MomentCard
@@ -121,7 +121,7 @@ function AllTimestampComments({ report }: { report: Report }) {
     <Card>
       <CardContent className="space-y-6 p-6 sm:p-7">
         <div>
-          <h3 className="text-section-title">
+          <h3 className="text-heading font-semibold">
             시점을 언급한 댓글 전체 {list.length}개
           </h3>
           <p className="text-caption mt-1.5">
@@ -132,11 +132,11 @@ function AllTimestampComments({ report }: { report: Report }) {
 
         {/* 안내문은 댓글 목록과 다른 톤(더 작고, 배경 분리)으로 둬서 실제
             콘텐츠(댓글)와 섞이지 않게 합니다. */}
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] p-4">
-          <p className="flex gap-2 text-caption leading-relaxed">
+        <div className="rounded-lg border border-amber-500/20 bg-[#1f2025] p-4">
+          <p className="flex gap-2 text-caption">
             <Info className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
             <span>
-              수집한 댓글 <strong className="text-foreground">{coverage.collected.toLocaleString()}개</strong> 중 시점을
+              수집한 댓글 {coverage.collected.toLocaleString()}개 중 시점을
               적은 것은{" "}
               <strong className="text-foreground">{coverage.total.toLocaleString()}개</strong>({sharePct.toFixed(1)}
               %)입니다.
@@ -183,14 +183,14 @@ function MomentCard({
       aria-pressed={active}
       className={`rounded-xl border text-left transition ${
         active
-          ? "border-primary bg-primary/[0.08] p-5 shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]"
+          ? "border-primary bg-[#190d1a] p-5 shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]"
           : "border-border/30 bg-card/40 p-4 hover:border-border/60 hover:bg-card/70"
       }`}
     >
       <div className="flex items-center gap-2.5">
         <span
           className={`flex shrink-0 items-center justify-center rounded-full font-bold tabular-nums transition-all ${
-            active ? "size-8 text-base" : "size-6 text-xs"
+            active ? "size-8 text-body-lg" : "size-6 text-caption"
           }`}
           style={{
             background: active ? CHART.crimson : "hsl(var(--muted))",
@@ -201,7 +201,7 @@ function MomentCard({
         </span>
         <span
           className={`tabular-nums ${
-            active ? "text-2xl font-bold text-primary" : "text-base font-medium text-foreground/85"
+            active ? "text-display font-bold text-primary" : "text-body-lg font-medium text-foreground/85"
           }`}
         >
           {formatSeconds(moment.startSec)}
@@ -212,11 +212,11 @@ function MomentCard({
 
       {heatPct != null && (
         <div className="mt-3.5">
-          <div className="flex items-center justify-between text-caption">
-            <span className="flex items-center gap-1">
-              <Repeat className="size-3.5" aria-hidden />
-              다시 본 강도
-            </span>
+          {/* 라벨과 값을 같은 줄에 붙여서 — 카드 양 끝으로 벌려두면 값이
+              라벨과 무관해 보입니다. */}
+          <div className="flex items-center gap-1.5 text-caption">
+            <Repeat className="size-3.5 shrink-0" aria-hidden />
+            <span>다시 본 강도</span>
             <span className={`tabular-nums ${active ? "font-semibold text-foreground" : ""}`}>
               {heatPct}
             </span>
@@ -255,7 +255,7 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2.5">
             <Flame className="size-5 shrink-0 text-primary" aria-hidden />
-            <h3 className="text-xl font-bold tabular-nums leading-tight">
+            <h3 className="text-heading font-bold tabular-nums">
               {moment.rank}번 지점 · {formatSeconds(moment.startSec)}–
               {formatSeconds(moment.endSec)}
             </h3>
@@ -294,7 +294,7 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
         </dl>
 
         {moment.evidence === "heatmap" && (
-          <p className="flex gap-2 rounded-lg bg-muted/50 p-3 text-caption leading-relaxed">
+          <p className="flex gap-2 rounded-lg bg-muted/50 p-3 text-caption">
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
             시청자가 여기를 반복해서 본 것은 확실하지만, 왜 그랬는지는 댓글 근거가
             없어 알 수 없습니다. 영상에서 직접 확인해 보세요.
@@ -302,7 +302,7 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
         )}
 
         <div>
-          <h4 className="mb-4 text-card-title">이 구간을 언급한 실제 댓글</h4>
+          <h4 className="mb-4 text-body-lg font-semibold">이 구간을 언급한 실제 댓글</h4>
           <CommentQuoteList
             initialVisible={5}
             comments={moment.comments}
@@ -330,8 +330,8 @@ function Metric({
   return (
     <div>
       <dt className="text-caption">{label}</dt>
-      <dd className="text-metric-sm mt-1 leading-tight">{value}</dd>
-      <p className="text-caption-sm mt-1">{hint}</p>
+      <dd className="text-display mt-1 font-bold tabular-nums">{value}</dd>
+      <p className="text-caption mt-1 text-muted-foreground/80">{hint}</p>
     </div>
   );
 }

@@ -23,11 +23,11 @@ import type { HeatPeak, HeatSegment, Sentiment } from "@/lib/types";
 import { seekPlayer } from "@/components/analysis/PlayerPanel";
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "hsl(223 45% 10%)",
-  border: "1px solid hsl(223 34% 20%)",
+  backgroundColor: "hsl(222 38% 11%)",
+  border: "1px solid hsl(222 22% 27%)",
   borderRadius: 8,
   fontSize: 12,
-  color: "hsl(222 30% 92%)",
+  color: "hsl(222 25% 95%)",
 } as const;
 
 function ChartTable({
@@ -40,7 +40,7 @@ function ChartTable({
   rows: (string | number)[][];
 }) {
   return (
-    <details className="mt-2 text-xs text-muted-foreground">
+    <details className="mt-2 text-caption text-muted-foreground">
       <summary className="cursor-pointer select-none">표로 보기</summary>
       <div className="mt-1 overflow-x-auto">
         <table className="w-full min-w-64 border-collapse text-left">
@@ -114,7 +114,7 @@ export function SentimentDonut({
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <ul className="grid w-full grid-cols-2 gap-2 text-sm" aria-hidden={false}>
+        <ul className="grid w-full grid-cols-2 gap-2 text-body" aria-hidden={false}>
           {order.map((k) => {
             const v = counts[k] ?? 0;
             return (
@@ -159,7 +159,7 @@ export function HeatmapArea({
 }) {
   if (segments.length === 0) {
     return (
-      <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-md border border-dashed p-6 text-center text-body text-muted-foreground">
         반복 재생 데이터가 없습니다. 아래에서 수동으로 가져오거나, 채널 소유자
         모드/실험적 로컬 모드를 사용할 수 있습니다.
       </p>
@@ -187,13 +187,13 @@ export function HeatmapArea({
               type="number"
               domain={[0, durationSeconds]}
               tickFormatter={(v: number) => formatSeconds(v)}
-              tick={{ fill: "hsl(222 14% 60%)", fontSize: 11 }}
+              tick={{ fill: "hsl(220 18% 74%)", fontSize: 12 }}
               stroke="hsl(223 34% 20%)"
             />
             <YAxis
               domain={[0, 1]}
               tickFormatter={(v: number) => v.toFixed(1)}
-              tick={{ fill: "hsl(222 14% 60%)", fontSize: 11 }}
+              tick={{ fill: "hsl(220 18% 74%)", fontSize: 12 }}
               stroke="hsl(223 34% 20%)"
               width={40}
             />
@@ -246,7 +246,7 @@ export function HeatmapArea({
 
 export function DailyBars({ data }: { data: { date: string; count: number }[] }) {
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground">데이터가 없습니다.</p>;
+    return <p className="text-body text-muted-foreground">데이터가 없습니다.</p>;
   }
   return (
     <figure aria-label="일자별 댓글 수">
@@ -256,12 +256,12 @@ export function DailyBars({ data }: { data: { date: string; count: number }[] })
             <XAxis
               dataKey="date"
               tickFormatter={(v: string) => v.slice(5)}
-              tick={{ fill: "hsl(222 14% 60%)", fontSize: 10 }}
+              tick={{ fill: "hsl(220 18% 74%)", fontSize: 12 }}
               stroke="hsl(223 34% 20%)"
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fill: "hsl(222 14% 60%)", fontSize: 10 }}
+              tick={{ fill: "hsl(220 18% 74%)", fontSize: 12 }}
               stroke="hsl(223 34% 20%)"
               allowDecimals={false}
               width={40}

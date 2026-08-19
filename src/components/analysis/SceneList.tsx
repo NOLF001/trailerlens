@@ -19,7 +19,7 @@ export function SceneList({
 }) {
   if (scenes.length === 0) {
     return (
-      <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-md border border-dashed p-6 text-center text-body text-muted-foreground">
         타임스탬프 언급이나 히트맵 데이터가 부족해 장면을 구성하지 못했습니다.
       </p>
     );
@@ -93,7 +93,7 @@ function SceneCard({ analysisId, scene }: { analysisId: string; scene: SceneInfo
       <CardContent className="space-y-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="tabular-nums">#{scene.rank}</Badge>
-          <span className="font-mono text-sm font-semibold text-foreground">
+          <span className="font-mono text-body font-semibold text-foreground">
             {formatSeconds(scene.startSec)} – {formatSeconds(scene.endSec)}
           </span>
           {scene.heatIntensity != null && (
@@ -116,14 +116,14 @@ function SceneCard({ analysisId, scene }: { analysisId: string; scene: SceneInfo
         {scene.topics.length > 0 && (
           <div className="flex flex-wrap gap-1.5" aria-label="대표 반응 주제">
             {scene.topics.map((t) => (
-              <Badge key={t} variant="secondary" className="text-[11px]">
+              <Badge key={t} variant="secondary" className="text-caption">
                 {TOPIC_LABELS_KO[t as Topic] ?? t}
               </Badge>
             ))}
           </div>
         )}
 
-        <div className="space-y-2 text-sm">
+        <div className="space-y-2 text-body">
           {editing ? (
             <div className="space-y-2">
               <Textarea
@@ -154,33 +154,33 @@ function SceneCard({ analysisId, scene }: { analysisId: string; scene: SceneInfo
               </div>
             </div>
           ) : (
-            <p className="leading-relaxed">
+            <p>
               <span className="font-medium text-muted-foreground">장면 설명: </span>
               {description || "설명 초안이 아직 없습니다."}
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                className="ml-2 inline-flex items-center gap-1 text-caption text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
               >
                 <Pencil className="size-3" aria-hidden /> 편집
               </button>
             </p>
           )}
           {scene.reason && (
-            <p className="leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground">
               <span className="font-medium">반복 시청 이유(추정): </span>
               {scene.reason}
             </p>
           )}
           {scene.summary && (
-            <p className="leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground">
               <span className="font-medium">대표 반응: </span>
               {scene.summary}
             </p>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-caption text-muted-foreground">
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 hover:bg-accent">
             {busy === "frames" ? (
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -202,7 +202,7 @@ function SceneCard({ analysisId, scene }: { analysisId: string; scene: SceneInfo
             않습니다)
           </span>
         </div>
-        {message && <p className="text-xs text-muted-foreground">{message}</p>}
+        {message && <p className="text-caption text-muted-foreground">{message}</p>}
       </CardContent>
     </Card>
   );

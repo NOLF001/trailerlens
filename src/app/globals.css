@@ -35,8 +35,12 @@
     --chart-crimson: 347 77% 50%;
     --chart-amber: 26 90% 44%;
 
-    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-      "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    /* var(--font-pretendard)는 layout.tsx의 next/font/local이 만드는 실제
+       로드된 폰트 이름. system-ui를 Pretendard보다 앞에 두면 브라우저가
+       거기서 멈춰버려 Pretendard까지 못 왔던 게 원래 버그였습니다. */
+    --font-sans: var(--font-pretendard), "Pretendard Variable", Pretendard,
+      -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
+      "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   }
 
   * {
@@ -70,39 +74,36 @@
 }
 
 /* ── Typography scale ─────────────────────────────────────────────────────
-   Named levels so weight/size/color decisions aren't re-invented per
-   component. Rule of thumb: important = big+bold+bright, supporting =
-   small+muted. Numbers always outrank their own label. */
+   6 sizes, defined once in tailwind.config.ts (theme.extend.fontSize):
+   text-caption(12) / text-body(14) / text-body-lg(16) / text-heading(20) /
+   text-display(28) / text-hero(40). Line-height ships with each size there.
+   Weight/color are applied per element with plain utilities (font-semibold,
+   text-muted-foreground, tabular-nums, …) — no extra layer of aliases on
+   top, so there's exactly one place that defines "how big". */
+
 @layer components {
-  .text-page-title {
-    @apply text-2xl font-bold leading-tight tracking-tight sm:text-[28px];
+  /* Task 2: cap prose measure independently of the card it sits in — the
+     card keeps its width, the paragraph wraps earlier. ~65ch. */
+  .prose-measure {
+    max-width: 65ch;
   }
-  .text-section-title {
-    @apply text-lg font-semibold tracking-tight text-foreground;
+
+  /* Task 5/6: the only interactive-text color on the page. Lighter than
+     --primary (which stays reserved for the peak-moment highlight) so it
+     clears 4.5:1 on every card background, and reads as "clickable" rather
+     than "hot". */
+  .text-link {
+    color: #fb7185;
   }
-  .text-card-title {
-    @apply text-base font-semibold text-foreground;
+  .text-link:hover {
+    color: #fda4af;
+    text-decoration-line: underline;
+    text-underline-offset: 3px;
   }
-  .text-metric-lg {
-    @apply text-3xl font-bold leading-none tabular-nums text-foreground;
-  }
-  .text-metric {
-    @apply text-xl font-semibold leading-none tabular-nums text-foreground;
-  }
-  .text-metric-sm {
-    @apply text-base font-semibold leading-none tabular-nums text-foreground;
-  }
-  .text-body {
-    @apply text-sm leading-relaxed text-foreground/90;
-  }
-  .text-body-lg {
-    @apply text-[15px] leading-[1.75] text-foreground/95;
-  }
-  .text-caption {
-    @apply text-xs leading-snug text-muted-foreground;
-  }
-  .text-caption-sm {
-    @apply text-[11px] leading-snug text-muted-foreground/80;
+  .text-link:focus-visible {
+    outline: 2px solid #fb7185;
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
 
@@ -110,4 +111,10 @@
 :focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
+}
+
+/* Task 7: sticky header is h-14 (56px). Any in-page jump target needs this
+   much breathing room or it lands (partly) underneath the header. */
+[id] {
+  scroll-margin-top: 72px;
 }

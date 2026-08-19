@@ -1,7 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import Link from "next/link";
 import { Clapperboard } from "lucide-react";
 import "./globals.css";
+
+// 셀프호스팅 Pretendard Variable. 이전엔 --font-sans 문자열에 이름만
+// 적혀 있고 실제로 로드된 적이 없어서, 시스템에 안 깔려 있으면 한글은
+// 맑은 고딕, 영문은 Segoe UI로 갈라져 렌더링됐습니다(기준선·굵기가
+// 다른 두 서체가 한 문장에 섞임).
+const pretendard = localFont({
+  src: "../../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2",
+  variable: "--font-pretendard",
+  display: "swap",
+  weight: "45 920",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -18,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className="dark">
+    <html lang="ko" className={`dark ${pretendard.variable}`}>
       <body className="min-h-dvh">
         <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">

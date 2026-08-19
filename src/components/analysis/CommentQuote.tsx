@@ -10,17 +10,36 @@ import { seekPlayer } from "@/components/analysis/PlayerPanel";
 import { REACTION_LABELS_KO, type HypeComment } from "@/lib/types";
 import { formatSeconds } from "@/lib/utils";
 
+// 댓글 원문이 "0:46 The Last Samurai"처럼 시점으로 시작하는 경우, 그 앞부분만
+// 시각적으로 구분합니다. 텍스트 자체는 한 글자도 바꾸지 않고 순수하게
+// 렌더링만 나눕니다 — 원문 보존 원칙(요약/의역 금지)과 별개입니다.
+const LEADING_TIMESTAMP_RE = /^(\d{1,2}:\d{2}(?::\d{2})?)(\s+)/;
+
+function CommentBody({ text }: { text: string }) {
+  const match = text.match(LEADING_TIMESTAMP_RE);
+  if (!match) {
+    return <p className="text-body prose-measure whitespace-pre-wrap break-words">{text}</p>;
+  }
+  const [full, stamp] = match;
+  return (
+    <p className="text-body prose-measure whitespace-pre-wrap break-words">
+      <span className="mr-1.5 rounded bg-muted px-1 py-0.5 font-mono text-caption tabular-nums text-muted-foreground">
+        {stamp}
+      </span>
+      {text.slice(full.length)}
+    </p>
+  );
+}
+
 export function CommentQuote({ comment }: { comment: HypeComment }) {
   // 위계: 본문(1순위, 가장 크고 여유롭게) → 작성자/좋아요/시간(2순위) →
   // 감정 태그(3순위, 가장 작게). 본문이 metadata에 묻히지 않도록 순서와
   // 크기 차이를 분명히 둡니다.
   return (
     <li className="rounded-lg border border-border/30 bg-card/40 p-5">
-      <p className="text-body-lg whitespace-pre-wrap break-words">{comment.text}</p>
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-caption">
-        <span className="truncate font-medium text-muted-foreground/90">
-          {comment.author}
-        </span>
+      <CommentBody text={comment.text} />
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-caption text-muted-foreground">
+        <span className="truncate font-medium">{comment.author}</span>
         <span className="flex items-center gap-1 tabular-nums">
           <Heart className="size-3.5" aria-hidden />
           {comment.likeCount.toLocaleString()}
@@ -29,7 +48,7 @@ export function CommentQuote({ comment }: { comment: HypeComment }) {
           <button
             type="button"
             onClick={() => seekPlayer(comment.timestampSec!)}
-            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-primary hover:bg-primary/10"
+            className="text-link flex items-center gap-1 rounded-md px-1.5 py-0.5"
           >
             <Play className="size-3" aria-hidden />
             {formatSeconds(comment.timestampSec)}부터 보기
@@ -38,7 +57,7 @@ export function CommentQuote({ comment }: { comment: HypeComment }) {
         {comment.reactions.length > 0 && (
           <span className="ml-auto flex flex-wrap gap-1">
             {comment.reactions.map((r) => (
-              <Badge key={r} variant="outline" className="text-[10px] font-normal text-muted-foreground">
+              <Badge key={r} variant="outline" className="text-caption font-normal text-muted-foreground">
                 {REACTION_LABELS_KO[r]}
               </Badge>
             ))}
@@ -64,7 +83,7 @@ export function CommentQuoteList({
 
   if (comments.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-border/70 p-5 text-sm text-muted-foreground">
+      <p className="rounded-lg border border-dashed border-border/70 p-5 text-body text-muted-foreground">
         {emptyText}
       </p>
     );

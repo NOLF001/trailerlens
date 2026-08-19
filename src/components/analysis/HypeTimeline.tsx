@@ -138,7 +138,7 @@ export function HypeTimeline({
                 x={left + width / 2}
                 y={PAD.top + (isSelected ? 6 : 5)}
                 textAnchor="middle"
-                fontSize={isSelected ? 13 : 10}
+                fontSize={isSelected ? 14 : 12}
                 fontWeight={isSelected ? 700 : 500}
                 fill={isSelected ? "#fff" : "hsl(220 15% 60%)"}
               >
