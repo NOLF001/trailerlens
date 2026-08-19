@@ -4,21 +4,25 @@
 
 @layer base {
   :root {
-    /* Dark cinematic — near-black navy base, crimson/magenta accents */
-    --background: 224 50% 5%;
-    --foreground: 222 30% 92%;
-    --card: 223 45% 8%;
-    --card-foreground: 222 30% 92%;
-    --muted: 223 40% 12%;
-    --muted-foreground: 222 14% 64%;
-    --border: 223 34% 17%;
-    --input: 223 34% 17%;
+    /* Dark cinematic — near-black navy base, crimson/magenta accents.
+       Surface layers step up ~5pt of lightness each (was 2-4pt, which read
+       as one indistinguishable gray) and accent shifts hue toward violet
+       instead of just another shade of navy, so hover/focus states are
+       visually distinct from static panels, not just slightly lighter. */
+    --background: 224 45% 6%;
+    --foreground: 222 25% 95%;
+    --card: 222 38% 11%;
+    --card-foreground: 222 25% 95%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 220 18% 74%;
+    --border: 222 22% 27%;
+    --input: 222 22% 27%;
     --primary: 347 77% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 223 40% 14%;
-    --secondary-foreground: 222 30% 92%;
-    --accent: 223 40% 16%;
-    --accent-foreground: 222 30% 95%;
+    --secondary: 222 30% 20%;
+    --secondary-foreground: 222 25% 96%;
+    --accent: 262 45% 24%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
     --ring: 292 70% 55%;
