@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { formatSeconds } from "@/lib/utils";
-import { SENTIMENT_LABELS_KO } from "@/lib/palette";
+import { SENTIMENT_COLORS, SENTIMENT_LABELS_KO } from "@/lib/palette";
 import { TOPICS, TOPIC_LABELS_KO, type Topic } from "@/lib/types";
 import type { ExplorerComment, ExplorerResponse } from "@/lib/client-types";
 
@@ -259,17 +259,28 @@ export function CommentRow({ comment: c }: { comment: ExplorerComment }) {
         <span>{new Date(c.publishedAt).toLocaleDateString("ko-KR")}</span>
         <span className="tabular-nums">👍 {c.likeCount.toLocaleString()}</span>
         {c.sentiment && (
-          <Badge variant="muted" className="text-[10px]">
+          <Badge
+            variant="outline"
+            className="text-[10px] font-semibold"
+            style={{
+              borderColor: SENTIMENT_COLORS[c.sentiment],
+              color: SENTIMENT_COLORS[c.sentiment],
+              backgroundColor: `${SENTIMENT_COLORS[c.sentiment]}22`,
+            }}
+          >
             {SENTIMENT_LABELS_KO[c.sentiment] ?? c.sentiment}
           </Badge>
         )}
         {c.isDuplicate && (
-          <Badge variant="muted" className="text-[10px]">
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">
             중복
           </Badge>
         )}
         {c.isSpam && (
-          <Badge variant="muted" className="text-[10px] text-amber-400">
+          <Badge
+            variant="outline"
+            className="border-amber-500/60 bg-amber-500/15 text-[10px] font-semibold text-amber-400"
+          >
             스팸 의심
           </Badge>
         )}
@@ -280,7 +291,7 @@ export function CommentRow({ comment: c }: { comment: ExplorerComment }) {
       {(c.topics.length > 0 || c.timestamps.length > 0) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {c.topics.map((t) => (
-            <Badge key={t} variant="secondary" className="text-[10px]">
+            <Badge key={t} variant="outline" className="text-[10px] text-muted-foreground">
               {TOPIC_LABELS_KO[t as Topic] ?? t}
             </Badge>
           ))}
