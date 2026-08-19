@@ -11,13 +11,16 @@ import { REACTION_LABELS_KO, type HypeComment } from "@/lib/types";
 import { formatSeconds } from "@/lib/utils";
 
 export function CommentQuote({ comment }: { comment: HypeComment }) {
+  // 위계: 본문(1순위, 가장 크고 여유롭게) → 작성자/좋아요/시간(2순위) →
+  // 감정 태그(3순위, 가장 작게). 본문이 metadata에 묻히지 않도록 순서와
+  // 크기 차이를 분명히 둡니다.
   return (
-    <li className="rounded-lg border border-border/70 bg-card/60 p-4">
-      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-foreground/95">
-        {comment.text}
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-        <span className="truncate font-medium text-foreground/70">{comment.author}</span>
+    <li className="rounded-lg border border-border/30 bg-card/40 p-5">
+      <p className="text-body-lg whitespace-pre-wrap break-words">{comment.text}</p>
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-caption">
+        <span className="truncate font-medium text-muted-foreground/90">
+          {comment.author}
+        </span>
         <span className="flex items-center gap-1 tabular-nums">
           <Heart className="size-3.5" aria-hidden />
           {comment.likeCount.toLocaleString()}
@@ -35,7 +38,7 @@ export function CommentQuote({ comment }: { comment: HypeComment }) {
         {comment.reactions.length > 0 && (
           <span className="ml-auto flex flex-wrap gap-1">
             {comment.reactions.map((r) => (
-              <Badge key={r} variant="secondary" className="font-normal">
+              <Badge key={r} variant="outline" className="text-[10px] font-normal text-muted-foreground">
                 {REACTION_LABELS_KO[r]}
               </Badge>
             ))}
@@ -73,8 +76,8 @@ export function CommentQuoteList({
   const hidden = comments.length - visible.length;
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-3">
+    <div className="space-y-4">
+      <ul className="space-y-4">
         {visible.map((c) => (
           <CommentQuote key={c.id} comment={c} />
         ))}

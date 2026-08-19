@@ -69,6 +69,43 @@
   }
 }
 
+/* ── Typography scale ─────────────────────────────────────────────────────
+   Named levels so weight/size/color decisions aren't re-invented per
+   component. Rule of thumb: important = big+bold+bright, supporting =
+   small+muted. Numbers always outrank their own label. */
+@layer components {
+  .text-page-title {
+    @apply text-2xl font-bold leading-tight tracking-tight sm:text-[28px];
+  }
+  .text-section-title {
+    @apply text-lg font-semibold tracking-tight text-foreground;
+  }
+  .text-card-title {
+    @apply text-base font-semibold text-foreground;
+  }
+  .text-metric-lg {
+    @apply text-3xl font-bold leading-none tabular-nums text-foreground;
+  }
+  .text-metric {
+    @apply text-xl font-semibold leading-none tabular-nums text-foreground;
+  }
+  .text-metric-sm {
+    @apply text-base font-semibold leading-none tabular-nums text-foreground;
+  }
+  .text-body {
+    @apply text-sm leading-relaxed text-foreground/90;
+  }
+  .text-body-lg {
+    @apply text-[15px] leading-[1.75] text-foreground/95;
+  }
+  .text-caption {
+    @apply text-xs leading-snug text-muted-foreground;
+  }
+  .text-caption-sm {
+    @apply text-[11px] leading-snug text-muted-foreground/80;
+  }
+}
+
 /* Keyboard focus visibility (WCAG) */
 :focus-visible {
   outline: 2px solid hsl(var(--ring));

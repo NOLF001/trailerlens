@@ -43,7 +43,7 @@ export function ReactionsSection({
         {/* 반응 유형 목록 */}
         <Card>
           <CardContent className="p-5">
-            <h2 className="text-base font-semibold">어떤 반응이었나</h2>
+            <h2 className="text-section-title">어떤 반응이었나</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               댓글 본문의 표현으로 분류했습니다. 한 댓글이 여러 유형에 들어갈 수
               있어 합이 100%를 넘습니다.
@@ -101,7 +101,7 @@ export function ReactionsSection({
           <CardContent className="p-5">
             {group ? (
               <>
-                <h3 className="text-base font-semibold">
+                <h3 className="text-section-title">
                   {REACTION_LABELS_KO[group.kind]} · {group.count.toLocaleString()}개
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -124,7 +124,7 @@ export function ReactionsSection({
       {/* 가장 강한 반응 */}
       <Card>
         <CardContent className="p-5">
-          <h2 className="flex items-center gap-2 text-base font-semibold">
+          <h2 className="flex items-center gap-2 text-section-title">
             <Quote className="size-4 text-primary" aria-hidden />
             가장 강하게 반응한 댓글
           </h2>

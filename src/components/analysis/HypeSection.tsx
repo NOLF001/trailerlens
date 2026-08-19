@@ -44,14 +44,15 @@ export function HypeSection({ report }: { report: Report }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 타임라인 + 플레이어 */}
+    <div className="space-y-10">
+      {/* 타임라인 + 플레이어 — 카드 두 개의 padding/무게를 맞춰서 나란히 둬도
+          한쪽만 붕 뜨지 않게 합니다. */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden">
-          <CardContent className="p-5">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-base font-semibold">영상 시간대별 열광도</h2>
-              <p className="text-xs text-muted-foreground">
+          <CardContent className="p-5 sm:p-6">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="text-section-title">영상 시간대별 열광도</h2>
+              <p className="text-caption">
                 {hasHeatmap
                   ? "유튜브가 집계한 '가장 많이 다시 본 구간' + 댓글 시점 언급"
                   : "댓글 시점 언급만으로 구성 (최다 재생 데이터 없음)"}
@@ -72,20 +73,20 @@ export function HypeSection({ report }: { report: Report }) {
           </CardContent>
         </Card>
 
-        <div className="space-y-3">
-          <PlayerPanel videoId={report.video.id} isMock={report.video.isMock} />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            타임라인의 번호나 아래 카드를 누르면 그 시점부터 재생됩니다.
-          </p>
-        </div>
+        <Card className="flex flex-col overflow-hidden">
+          <CardContent className="flex flex-1 flex-col gap-3 p-5 sm:p-6">
+            <PlayerPanel videoId={report.video.id} isMock={report.video.isMock} />
+            <p className="text-caption">
+              타임라인의 번호나 아래 카드를 누르면 그 시점부터 재생됩니다.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 지점 선택 카드 */}
+      {/* 지점 선택 카드 — 1번은 primary, 나머지는 secondary */}
       <div>
-        <h2 className="mb-3 text-base font-semibold">
-          열광 지점 {moments.length}곳
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <h2 className="mb-4 text-section-title">열광 지점 {moments.length}곳</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {moments.map((m) => (
             <MomentCard
               key={m.rank}
@@ -118,24 +119,26 @@ function AllTimestampComments({ report }: { report: Report }) {
 
   return (
     <Card>
-      <CardContent className="space-y-4 p-6">
+      <CardContent className="space-y-6 p-6 sm:p-7">
         <div>
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-section-title">
             시점을 언급한 댓글 전체 {list.length}개
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-caption mt-1.5">
             영상 시각을 직접 적은 댓글을 어느 지점에 속하는지와 무관하게 시간순으로
             모았습니다.
           </p>
         </div>
 
-        <div className="rounded-lg bg-muted/60 p-4">
-          <p className="flex gap-2 text-sm leading-relaxed">
+        {/* 안내문은 댓글 목록과 다른 톤(더 작고, 배경 분리)으로 둬서 실제
+            콘텐츠(댓글)와 섞이지 않게 합니다. */}
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] p-4">
+          <p className="flex gap-2 text-caption leading-relaxed">
             <Info className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
             <span>
-              수집한 댓글 <strong>{coverage.collected.toLocaleString()}개</strong> 중 시점을
+              수집한 댓글 <strong className="text-foreground">{coverage.collected.toLocaleString()}개</strong> 중 시점을
               적은 것은{" "}
-              <strong>{coverage.total.toLocaleString()}개</strong>({sharePct.toFixed(1)}
+              <strong className="text-foreground">{coverage.total.toLocaleString()}개</strong>({sharePct.toFixed(1)}
               %)입니다.
               {coverage.timestampOnly > 0 && (
                 <>
@@ -171,59 +174,71 @@ function MomentCard({
   onSelect: () => void;
 }) {
   const heatPct = moment.heat != null ? Math.round(moment.heat * 100) : null;
+  // 선택된 카드만 primary로 강조하고 나머지는 낮춥니다 — 6개가 전부 같은
+  // 무게로 경쟁하면 어디부터 봐야 할지 알 수 없어집니다.
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      className={`rounded-xl border p-4 text-left transition ${
+      className={`rounded-xl border text-left transition ${
         active
-          ? "border-primary bg-primary/10 ring-1 ring-primary/40"
-          : "border-border/70 bg-card/60 hover:border-primary/50 hover:bg-card"
+          ? "border-primary bg-primary/[0.08] p-5 shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]"
+          : "border-border/30 bg-card/40 p-4 hover:border-border/60 hover:bg-card/70"
       }`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+          className={`flex shrink-0 items-center justify-center rounded-full font-bold tabular-nums transition-all ${
+            active ? "size-8 text-base" : "size-6 text-xs"
+          }`}
           style={{
-            background: active ? CHART.crimson : "hsl(223 40% 14%)",
-            color: active ? "#fff" : CHART.crimson,
+            background: active ? CHART.crimson : "hsl(var(--muted))",
+            color: active ? "#fff" : "hsl(var(--muted-foreground))",
           }}
         >
           {moment.rank}
         </span>
-        <span className="text-lg font-semibold tabular-nums">
+        <span
+          className={`tabular-nums ${
+            active ? "text-2xl font-bold text-primary" : "text-base font-medium text-foreground/85"
+          }`}
+        >
           {formatSeconds(moment.startSec)}
         </span>
-        <span className="text-sm text-muted-foreground tabular-nums">
-          –{formatSeconds(moment.endSec)}
-        </span>
-        <Play className="ml-auto size-4 text-muted-foreground" aria-hidden />
+        <span className="text-caption tabular-nums">–{formatSeconds(moment.endSec)}</span>
+        {active && <Play className="ml-auto size-4 text-primary/70" aria-hidden />}
       </div>
 
       {heatPct != null && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="mt-3.5">
+          <div className="flex items-center justify-between text-caption">
             <span className="flex items-center gap-1">
               <Repeat className="size-3.5" aria-hidden />
               다시 본 강도
             </span>
-            <span className="tabular-nums">{heatPct}</span>
+            <span className={`tabular-nums ${active ? "font-semibold text-foreground" : ""}`}>
+              {heatPct}
+            </span>
           </div>
           <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full"
-              style={{ width: `${heatPct}%`, background: CHART.tealSoft }}
+              style={{
+                width: `${heatPct}%`,
+                background: CHART.tealSoft,
+                opacity: active ? 1 : 0.7,
+              }}
             />
           </div>
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+      <div className="mt-3.5 flex flex-wrap items-center gap-2 text-caption">
         <Badge variant="outline" className="font-normal">
           {EVIDENCE_LABEL[moment.evidence]}
         </Badge>
-        <span className="flex items-center gap-1 text-muted-foreground">
+        <span className="flex items-center gap-1">
           <MessageSquare className="size-3.5" aria-hidden />
           언급 댓글 {moment.mentionCount}개
         </span>
@@ -234,14 +249,17 @@ function MomentCard({
 
 function MomentDetail({ moment }: { moment: HypeMoment }) {
   return (
-    <Card>
-      <CardContent className="space-y-5 p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Flame className="size-5 text-primary" aria-hidden />
-          <h3 className="text-lg font-semibold">
-            {moment.rank}번 지점 · {formatSeconds(moment.startSec)}–
-            {formatSeconds(moment.endSec)}
-          </h3>
+    // Heading → Metrics → Evidence → Comments 순서로 읽히게 합니다.
+    <Card className="border-primary/25">
+      <CardContent className="space-y-6 p-6 sm:p-7">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2.5">
+            <Flame className="size-5 shrink-0 text-primary" aria-hidden />
+            <h3 className="text-xl font-bold tabular-nums leading-tight">
+              {moment.rank}번 지점 · {formatSeconds(moment.startSec)}–
+              {formatSeconds(moment.endSec)}
+            </h3>
+          </div>
           <Button
             size="sm"
             variant="secondary"
@@ -252,7 +270,7 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
           </Button>
         </div>
 
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 border-y border-border/30 py-5 sm:grid-cols-4">
           <Metric
             label="다시 본 강도"
             value={moment.heat != null ? `${Math.round(moment.heat * 100)}` : "—"}
@@ -275,10 +293,16 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
           />
         </dl>
 
+        {moment.evidence === "heatmap" && (
+          <p className="flex gap-2 rounded-lg bg-muted/50 p-3 text-caption leading-relaxed">
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            시청자가 여기를 반복해서 본 것은 확실하지만, 왜 그랬는지는 댓글 근거가
+            없어 알 수 없습니다. 영상에서 직접 확인해 보세요.
+          </p>
+        )}
+
         <div>
-          <h4 className="mb-3 text-sm font-semibold text-muted-foreground">
-            이 구간을 언급한 실제 댓글
-          </h4>
+          <h4 className="mb-4 text-card-title">이 구간을 언급한 실제 댓글</h4>
           <CommentQuoteList
             initialVisible={5}
             comments={moment.comments}
@@ -289,14 +313,6 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
             }
           />
         </div>
-
-        {moment.evidence === "heatmap" && (
-          <p className="flex gap-2 rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-            시청자가 여기를 반복해서 본 것은 확실하지만, 왜 그랬는지는 댓글 근거가
-            없어 알 수 없습니다. 영상에서 직접 확인해 보세요.
-          </p>
-        )}
       </CardContent>
     </Card>
   );
@@ -313,9 +329,9 @@ function Metric({
 }) {
   return (
     <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-lg font-semibold leading-tight">{value}</dd>
-      <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground/80">{hint}</p>
+      <dt className="text-caption">{label}</dt>
+      <dd className="text-metric-sm mt-1 leading-tight">{value}</dd>
+      <p className="text-caption-sm mt-1">{hint}</p>
     </div>
   );
 }

@@ -35,19 +35,22 @@ import {
   type Topic,
 } from "@/lib/types";
 
+// 활성 탭은 배경 대신 primary 색으로 구분합니다(밝기 차이만으로는 눈에
+// 잘 안 띄어서). 트랙 자체는 옅게 둬서 탭 바가 별도의 무거운 카드처럼
+// 보이지 않게 합니다.
 const TAB_CLASS =
-  "gap-2 rounded-md px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm";
+  "gap-2 rounded-md px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none";
 
 export function ReportView({ analysisId, report }: { analysisId: string; report: Report }) {
   const [cleaned, setCleaned] = useState(true);
   const stats = cleaned ? report.stats.cleaned : report.stats.raw;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SummaryHeader report={report} />
 
-      <Tabs defaultValue="hype" className="space-y-5">
-        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1">
+      <Tabs defaultValue="hype" className="space-y-6">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-lg border border-border/40 bg-card/60 p-1">
           <TabsTrigger value="hype" className={TAB_CLASS}>
             <Flame className="size-4" aria-hidden />
             열광 지점
@@ -89,9 +92,9 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
 
         {/* 3. 통계 */}
         <TabsContent value="stats" className="mt-0 space-y-8 focus-visible:outline-none">
-          <section aria-labelledby="overview-heading" className="space-y-3">
+          <section aria-labelledby="overview-heading" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 id="overview-heading" className="text-base font-semibold">
+              <h2 id="overview-heading" className="text-section-title">
                 댓글 반응 개요
               </h2>
               <div className="flex items-center gap-2">
@@ -104,33 +107,33 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
             <OverviewGrid stats={stats} />
           </section>
 
-          <section aria-labelledby="topics-heading" className="space-y-3">
-            <h2 id="topics-heading" className="text-base font-semibold">
+          <section aria-labelledby="topics-heading" className="space-y-4">
+            <h2 id="topics-heading" className="text-section-title">
               주제별 반응
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-caption">
               비율은 분석된 댓글 대비, 영향력은 좋아요 가중치(1 + ln(1+좋아요)) 합계
               기준입니다.
             </p>
             <TopicsTable stats={stats} summaries={report.topicSummaries} />
           </section>
 
-          <section aria-labelledby="controversy-heading" className="space-y-3">
-            <h2 id="controversy-heading" className="text-base font-semibold">
+          <section aria-labelledby="controversy-heading" className="space-y-4">
+            <h2 id="controversy-heading" className="text-section-title">
               논쟁 및 우려
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-caption">
               소수 의견이 사라지지 않도록 별도로 표시합니다. 개별 작성자가 아닌 집단
               수준의 요약입니다.
             </p>
             <ControversyGrid report={report} />
           </section>
 
-          <section aria-labelledby="scenes-heading" className="space-y-3">
-            <h2 id="scenes-heading" className="text-base font-semibold">
+          <section aria-labelledby="scenes-heading" className="space-y-4">
+            <h2 id="scenes-heading" className="text-section-title">
               장면 클러스터 (원본)
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-caption">
               열광 지점의 바탕이 된 군집 데이터입니다. 구간을 직접 수정할 수 있습니다.
             </p>
             <SceneList analysisId={analysisId} scenes={report.scenes} />
@@ -164,10 +167,10 @@ function SummaryHeader({ report }: { report: Report }) {
   return (
     <section
       aria-label="분석 요약"
-      className="relative overflow-hidden rounded-xl border bg-card"
+      className="relative overflow-hidden rounded-xl border border-border/50 bg-card"
     >
       {v.thumbnailUrl && (
-        <div className="pointer-events-none absolute inset-0 opacity-20">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.15]">
           <Image
             src={v.thumbnailUrl}
             alt=""
@@ -179,10 +182,13 @@ function SummaryHeader({ report }: { report: Report }) {
           <div className="absolute inset-0 bg-gradient-to-b from-background/30 to-card" />
         </div>
       )}
-      <div className="relative flex flex-col gap-6 p-6 sm:flex-row">
-        <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg border border-border/60 sm:w-64">
+      {/* 우선순위: 제목 → 핵심 요약(열광 지점) → 분석 개요 → 기준시각/모드 →
+          통계 → 기타 메타(채널·링크). 아래로 갈수록 폰트가 작아지고
+          muted해집니다 — 한 화면에 다 있어도 시선이 자연스럽게 흐르도록. */}
+      <div className="relative flex flex-col gap-8 p-6 sm:p-8 lg:flex-row lg:items-start">
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg border border-border/40 lg:w-72">
           {v.thumbnailUrl ? (
-            <Image src={v.thumbnailUrl} alt="" fill sizes="256px" className="object-cover" />
+            <Image src={v.thumbnailUrl} alt="" fill sizes="288px" className="object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center bg-muted text-muted-foreground">
               썸네일 없음
@@ -190,44 +196,38 @@ function SummaryHeader({ report }: { report: Report }) {
           )}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {v.isMock && <Badge variant="secondary">Mock 데이터</Badge>}
-            <Badge variant="muted">{MODE_LABELS_KO[report.mode]}</Badge>
-            <span className="text-xs text-muted-foreground">
-              {new Date(report.generatedAt).toLocaleString("ko-KR")} 기준
-            </span>
-          </div>
-
-          <h1 className="text-2xl font-bold leading-tight">{v.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {v.channelTitle} ·{" "}
-            <a
-              href={watchUrl(v.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
-            >
-              YouTube에서 열기 <ExternalLink className="size-3" aria-hidden />
-            </a>
-          </p>
+        <div className="min-w-0 flex-1 space-y-6">
+          <h1 className="text-page-title text-balance">{v.title}</h1>
 
           {topMoment && (
-            <p className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2.5 text-sm">
-              <Flame className="size-4 shrink-0 text-primary" aria-hidden />
-              <span>
-                가장 열광한 지점은{" "}
-                <strong className="text-primary tabular-nums">
-                  {formatSeconds(topMoment.startSec)}–{formatSeconds(topMoment.endSec)}
-                </strong>
+            <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 py-4">
+              <div className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide text-primary/85">
+                <Flame className="size-3.5" aria-hidden />
+                가장 열광한 지점
+              </div>
+              <div className="mt-1.5 text-3xl font-bold tabular-nums leading-none text-primary sm:text-4xl">
+                {formatSeconds(topMoment.startSec)}–{formatSeconds(topMoment.endSec)}
+              </div>
+              <p className="mt-2 text-caption">
                 {topMoment.mentionCount > 0
-                  ? ` · 이 구간을 직접 언급한 댓글 ${topMoment.mentionCount}개`
-                  : " · 다시 본 횟수 기준"}
-              </span>
-            </p>
+                  ? `이 구간을 직접 언급한 댓글 ${topMoment.mentionCount}개`
+                  : "다시 본 횟수 기준"}
+              </p>
+            </div>
           )}
 
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+          {report.conclusion && (
+            <p className="text-body max-w-2xl">{report.conclusion}</p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 text-caption">
+            <Badge variant="muted" className="text-[11px]">
+              {MODE_LABELS_KO[report.mode]}
+            </Badge>
+            <span>{new Date(report.generatedAt).toLocaleString("ko-KR")} 기준</span>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-4 border-t border-border/40 pt-5 sm:grid-cols-4">
             <Stat label="조회수" value={formatCount(v.viewCount)} />
             <Stat label="좋아요" value={formatCount(v.likeCount)} />
             <Stat label="유튜브 표시 댓글" value={formatCount(v.commentCount)} />
@@ -237,7 +237,22 @@ function SummaryHeader({ report }: { report: Report }) {
             />
           </dl>
 
-          <p className="text-sm leading-relaxed text-muted-foreground">{report.conclusion}</p>
+          <p className="flex flex-wrap items-center gap-1.5 text-caption-sm">
+            {v.isMock && (
+              <Badge variant="secondary" className="text-[10px]">
+                Mock 데이터
+              </Badge>
+            )}
+            <span>{v.channelTitle}</span>
+            <a
+              href={watchUrl(v.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+            >
+              · YouTube에서 열기 <ExternalLink className="size-3" aria-hidden />
+            </a>
+          </p>
         </div>
       </div>
     </section>
@@ -304,8 +319,8 @@ function SourcePanel({ report, analysisId }: { report: Report; analysisId: strin
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-semibold tabular-nums">{value}</dd>
+      <dt className="text-caption">{label}</dt>
+      <dd className="text-metric mt-1">{value}</dd>
     </div>
   );
 }

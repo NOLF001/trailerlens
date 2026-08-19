@@ -74,7 +74,7 @@ export function HypeTimeline({
           </linearGradient>
         </defs>
 
-        {/* 눈금선 */}
+        {/* 눈금선 — plot을 깨끗하게 유지하려고 아주 옅게 */}
         {[0.25, 0.5, 0.75].map((f) => (
           <line
             key={f}
@@ -82,7 +82,8 @@ export function HypeTimeline({
             x2={W - PAD.right}
             y1={PAD.top + PLOT_H * f}
             y2={PAD.top + PLOT_H * f}
-            stroke="hsl(223 34% 18%)"
+            stroke="hsl(222 22% 27%)"
+            strokeOpacity={0.4}
             strokeWidth={1}
           />
         ))}
@@ -111,33 +112,35 @@ export function HypeTimeline({
                 }
               }}
             >
+              {/* 선택된 지점만 강하게: 나머지는 옅은 회색 윤곽만 남겨서
+                  숫자들이 서로 경쟁하지 않게 합니다. */}
               <rect
                 x={left}
                 y={PAD.top}
                 width={width}
                 height={PLOT_H}
                 fill={CHART.crimson}
-                fillOpacity={isSelected ? 0.28 : 0.12}
-                stroke={CHART.crimson}
-                strokeOpacity={isSelected ? 0.9 : 0.35}
+                fillOpacity={isSelected ? 0.28 : 0.06}
+                stroke={isSelected ? CHART.crimson : "hsl(222 18% 45%)"}
+                strokeOpacity={isSelected ? 0.9 : 0.3}
                 strokeWidth={isSelected ? 2 : 1}
                 rx={3}
               />
               <circle
                 cx={left + width / 2}
                 cy={PAD.top + 2}
-                r={11}
-                fill={isSelected ? CHART.crimson : "hsl(223 45% 10%)"}
-                stroke={CHART.crimson}
-                strokeWidth={1.5}
+                r={isSelected ? 12 : 9}
+                fill={isSelected ? CHART.crimson : "hsl(222 30% 16%)"}
+                stroke={isSelected ? CHART.crimson : "hsl(222 18% 45%)"}
+                strokeWidth={isSelected ? 1.5 : 1}
               />
               <text
                 x={left + width / 2}
-                y={PAD.top + 6}
+                y={PAD.top + (isSelected ? 6 : 5)}
                 textAnchor="middle"
-                fontSize={12}
-                fontWeight={700}
-                fill={isSelected ? "#fff" : CHART.crimson}
+                fontSize={isSelected ? 13 : 10}
+                fontWeight={isSelected ? 700 : 500}
+                fill={isSelected ? "#fff" : "hsl(220 15% 60%)"}
               >
                 {m.rank}
               </text>
@@ -151,7 +154,7 @@ export function HypeTimeline({
           x2={W - PAD.right}
           y1={baseline}
           y2={baseline}
-          stroke="hsl(223 34% 26%)"
+          stroke="hsl(222 22% 27%)"
           strokeWidth={1}
         />
 
@@ -176,7 +179,7 @@ export function HypeTimeline({
             y={H - 8}
             textAnchor={t === 0 ? "start" : t === duration ? "end" : "middle"}
             fontSize={12}
-            fill="hsl(222 14% 62%)"
+            fill="hsl(220 18% 60%)"
           >
             {formatSeconds(t)}
           </text>

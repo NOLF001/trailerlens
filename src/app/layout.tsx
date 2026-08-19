@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">{children}</main>
         <footer className="border-t border-border/60 py-6">
           <div className="mx-auto max-w-6xl px-4 text-xs text-muted-foreground">
             TrailerLens는 YouTube Data API의 공개 데이터를 사용합니다. 히트맵 값은
