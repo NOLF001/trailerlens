@@ -48,4 +48,7 @@ EXPOSE 3000
 # "pnpm prisma ..."처럼 pnpm 경유로 실행하면 매번 lockfile/스토어 상태를
 # 검증하는데, 그 과정에서 네트워크로 전체 의존성 그래프를 다시 훑는 게
 # 런타임 OOM의 원인이었습니다. 바이너리를 직접 부르면 이 과정이 아예 없습니다.
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --schema prisma/schema.postgres.prisma --skip-generate && node_modules/.bin/next start"]
+# db push가 실패해도(예: DB 일시 장애) 세미콜론으로 넘어가 next start는 반드시
+# 실행합니다. &&였을 때 DB가 죽은 상태로 재배포하면 컨테이너가 아예 못 뜨고
+# 크래시 루프를 도는 문제가 있었습니다.
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --schema prisma/schema.postgres.prisma --skip-generate; node_modules/.bin/next start"]
