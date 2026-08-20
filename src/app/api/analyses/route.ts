@@ -9,6 +9,7 @@ import { isValidVideoId } from "@/lib/youtube/url";
 import { getVideoMeta } from "@/lib/youtube/metadata";
 import { getOwnerRetention, AnalyticsError } from "@/lib/youtube/analytics";
 import { kickoffAnalysis } from "@/lib/jobs/runner";
+import { pruneOldVideos } from "@/lib/jobs/retention";
 import { rateLimit, clientIpFrom } from "@/lib/rate-limit";
 import { serializeAnalysis } from "@/lib/serialize";
 import { env, isGoogleOAuthConfigured, isMockMode } from "@/lib/env";
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
     data: { videoId, mode, status: "queued" },
   });
   await kickoffAnalysis(analysis.id);
+  void pruneOldVideos().catch((e) => console.error("pruneOldVideos failed:", e));
 
   return NextResponse.json({ id: analysis.id, reused: false }, { status: 201 });
 }
