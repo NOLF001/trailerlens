@@ -38,6 +38,13 @@ export interface CategoryResponse {
   groups: CategoryGroup[];
 }
 
+export interface EvictionPreviewVideo {
+  id: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+}
+
 export interface SettingsStatus {
   youtubeApiConfigured: boolean;
   anthropicConfigured: boolean;

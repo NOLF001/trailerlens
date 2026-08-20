@@ -16,6 +16,7 @@ process.env.DATABASE_URL = DB_URL;
 
 let prisma: (typeof import("@/lib/db"))["prisma"];
 let pruneOldVideos: (typeof import("@/lib/jobs/retention"))["pruneOldVideos"];
+let previewEviction: (typeof import("@/lib/jobs/retention"))["previewEviction"];
 
 beforeAll(async () => {
   rmSync(DB_FILE, { force: true });
@@ -25,7 +26,7 @@ beforeAll(async () => {
     stdio: "ignore",
   });
   ({ prisma } = await import("@/lib/db"));
-  ({ pruneOldVideos } = await import("@/lib/jobs/retention"));
+  ({ pruneOldVideos, previewEviction } = await import("@/lib/jobs/retention"));
 }, 120_000);
 
 afterAll(async () => {
@@ -128,5 +129,73 @@ describe("pruneOldVideos", () => {
 
     const remaining = await prisma.video.count();
     expect(remaining).toBe(2);
+  });
+});
+
+// previewEviction: dry-run version used to warn the user BEFORE the automatic
+// deletion actually happens (자동 삭제 전 경고 팝업).
+describe("previewEviction", () => {
+  it("returns nothing for a video that already has analyses (re-analyzing never evicts)", async () => {
+    const base = Date.now();
+    for (let i = 0; i < 3; i++) {
+      await seedVideo(`v${i}`);
+      await prisma.analysis.create({
+        data: { videoId: `v${i}`, mode: "full", status: "completed", createdAt: new Date(base + i * 1000) },
+      });
+    }
+
+    const result = await previewEviction("v0");
+    expect(result).toEqual([]);
+  });
+
+  it("returns nothing when under the 3-video cap", async () => {
+    const base = Date.now();
+    for (let i = 0; i < 2; i++) {
+      await seedVideo(`v${i}`);
+      await prisma.analysis.create({
+        data: { videoId: `v${i}`, mode: "full", status: "completed", createdAt: new Date(base + i * 1000) },
+      });
+    }
+
+    const result = await previewEviction("brand-new-video");
+    expect(result).toEqual([]);
+  });
+
+  it("identifies the oldest video that a brand-new analysis would evict, without deleting anything", async () => {
+    const base = Date.now();
+    for (let i = 0; i < 3; i++) {
+      await seedVideo(`v${i}`);
+      await prisma.analysis.create({
+        data: { videoId: `v${i}`, mode: "full", status: "completed", createdAt: new Date(base + i * 1000) },
+      });
+    }
+
+    const result = await previewEviction("brand-new-video");
+    expect(result.map((v) => v.id)).toEqual(["v0"]); // oldest by createdAt
+
+    // Nothing was actually deleted — this is a preview only.
+    expect(await prisma.video.count()).toBe(3);
+  });
+
+  it("skips protected in-flight videos and never lists the candidate itself as a victim", async () => {
+    const base = Date.now();
+    await seedVideo("v0");
+    await seedVideo("v1");
+    await seedVideo("v2");
+    await prisma.analysis.create({
+      data: { videoId: "v0", mode: "full", status: "running", createdAt: new Date(base) },
+    });
+    await prisma.analysis.create({
+      data: { videoId: "v1", mode: "full", status: "completed", createdAt: new Date(base + 1000) },
+    });
+    await prisma.analysis.create({
+      data: { videoId: "v2", mode: "full", status: "completed", createdAt: new Date(base + 2000) },
+    });
+
+    const result = await previewEviction("brand-new-video");
+    // v0 is protected (running) despite being oldest; v1 is the next-oldest
+    // and gets evicted instead so the total stays at the 3-video cap.
+    expect(result.map((v) => v.id)).toEqual(["v1"]);
+    expect(result.some((v) => v.id === "brand-new-video")).toBe(false);
   });
 });

@@ -16,8 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn, formatCount, formatSeconds } from "@/lib/utils";
 import type { AnalysisMode, VideoMeta } from "@/lib/types";
+import type { EvictionPreviewVideo } from "@/lib/client-types";
 
 const MODES: {
   id: AnalysisMode;
@@ -59,6 +61,9 @@ export function UrlForm() {
   const [mode, setMode] = useState<AnalysisMode>("full");
   const [busy, setBusy] = useState<"resolve" | "start" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingEviction, setPendingEviction] = useState<EvictionPreviewVideo[] | null>(
+    null,
+  );
 
   async function resolve(e: React.FormEvent) {
     e.preventDefault();
@@ -90,6 +95,31 @@ export function UrlForm() {
   }
 
   async function start() {
+    if (!video) return;
+    setBusy("start");
+    setError(null);
+    try {
+      // 이 영상이 새 영상이고 저장 공간(최근 3개)이 이미 꽉 차 있으면, 기존
+      // 영상 중 하나가 자동으로 삭제됩니다 — 실행 전에 사용자 확인을 받습니다.
+      const check = await fetch(
+        `/api/videos/eviction-check?videoId=${encodeURIComponent(video.id)}`,
+      );
+      if (check.ok) {
+        const data = (await check.json()) as { evictedVideos?: EvictionPreviewVideo[] };
+        if (data.evictedVideos && data.evictedVideos.length > 0) {
+          setPendingEviction(data.evictedVideos);
+          setBusy(null);
+          return; // 사용자가 팝업에서 예/아니오를 선택할 때까지 대기
+        }
+      }
+      await startAnalysis();
+    } catch {
+      setError("네트워크 오류가 발생했습니다.");
+      setBusy(null);
+    }
+  }
+
+  async function startAnalysis() {
     if (!video) return;
     setBusy("start");
     setError(null);
@@ -214,6 +244,34 @@ export function UrlForm() {
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={pendingEviction != null && pendingEviction.length > 0}
+        title="기존 분석 데이터가 삭제됩니다"
+        description={
+          <div className="space-y-2">
+            <p>
+              저장 공간은 최근 3개 영상까지만 유지됩니다. 이 영상을 분석하면 아래
+              영상의 댓글·분석 데이터가 영구적으로 삭제됩니다:
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+              {(pendingEviction ?? []).map((v) => (
+                <li key={v.id} className="line-clamp-1">
+                  {v.title} <span className="text-muted-foreground">({v.channelTitle})</span>
+                </li>
+              ))}
+            </ul>
+            <p>계속하시겠습니까?</p>
+          </div>
+        }
+        confirmLabel="예, 계속"
+        cancelLabel="아니오"
+        onCancel={() => setPendingEviction(null)}
+        onConfirm={() => {
+          setPendingEviction(null);
+          void startAnalysis();
+        }}
+      />
     </div>
   );
 }
