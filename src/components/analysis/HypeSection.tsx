@@ -8,6 +8,7 @@ import { Flame, Info, MessageSquare, Play, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { HypeTimeline } from "@/components/analysis/HypeTimeline";
 import { CommentQuoteList } from "@/components/analysis/CommentQuote";
 import { PlayerPanel, seekPlayer } from "@/components/analysis/PlayerPanel";
@@ -21,7 +22,7 @@ const EVIDENCE_LABEL: Record<HypeMoment["evidence"], string> = {
   comments: "댓글",
 };
 
-export function HypeSection({ report }: { report: Report }) {
+export function HypeSection({ report, analysisId }: { report: Report; analysisId: string }) {
   const moments = report.hype?.moments ?? [];
   const [selected, setSelected] = useState<number>(moments[0]?.rank ?? 1);
   const current = moments.find((m) => m.rank === selected) ?? moments[0] ?? null;
@@ -105,12 +106,18 @@ export function HypeSection({ report }: { report: Report }) {
       {current && <MomentDetail moment={current} />}
 
       {/* 시점을 언급한 댓글 전체 */}
-      <AllTimestampComments report={report} />
+      <AllTimestampComments report={report} analysisId={analysisId} />
     </div>
   );
 }
 
-function AllTimestampComments({ report }: { report: Report }) {
+function AllTimestampComments({
+  report,
+  analysisId,
+}: {
+  report: Report;
+  analysisId: string;
+}) {
   const list = report.hype?.timestampedComments ?? [];
   const coverage = report.hype?.timestampCoverage;
   if (!coverage) return null;
@@ -118,49 +125,48 @@ function AllTimestampComments({ report }: { report: Report }) {
   const sharePct = coverage.collected > 0 ? (coverage.total / coverage.collected) * 100 : 0;
 
   return (
-    <Card>
-      <CardContent className="space-y-6 p-6 sm:p-7">
-        <div>
-          <h3 className="text-heading font-semibold">
-            시점을 언급한 댓글 전체 {list.length}개
-          </h3>
-          <p className="text-caption mt-1.5">
-            영상 시각을 직접 적은 댓글을 어느 지점에 속하는지와 무관하게 시간순으로
-            모았습니다.
-          </p>
-        </div>
+    <CollapsibleSection
+      id={`${analysisId}:all-timestamp-comments`}
+      title={`시점을 언급한 댓글 전체 ${list.length}개`}
+      teaser="영상 시각을 직접 적은 댓글을 시간순으로 모았습니다"
+      previewGlyph={
+        <span className="text-heading font-bold tabular-nums text-foreground">
+          {list.length}
+        </span>
+      }
+    >
+      {/* 안내문은 댓글 목록과 다른 톤(더 작고, 배경 분리)으로 둬서 실제
+          콘텐츠(댓글)와 섞이지 않게 합니다. */}
+      <div className="rounded-lg border border-amber-500/20 bg-[#1f2025] p-4">
+        <p className="flex gap-2 text-caption">
+          <Info className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
+          <span>
+            수집한 댓글 {coverage.collected.toLocaleString()}개 중 시점을
+            적은 것은{" "}
+            <strong className="text-foreground">{coverage.total.toLocaleString()}개</strong>({sharePct.toFixed(1)}
+            %)입니다.
+            {coverage.timestampOnly > 0 && (
+              <>
+                {" "}
+                그중 {coverage.timestampOnly}개는 타임스탬프만 나열해 인용에서
+                제외했습니다.
+              </>
+            )}{" "}
+            {coverage.quotable < 50
+              ? "지점별 근거가 적은 것은 분석이 놓쳐서가 아니라 원래 시점을 적는 사람이 이만큼뿐이기 때문입니다. 댓글을 더 수집하면 이 숫자도 늘어납니다."
+              : "시점을 적는 사람은 원래 전체의 2% 안팎이라, 댓글을 더 수집할수록 이 숫자도 비례해 늘어납니다."}
+          </span>
+        </p>
+      </div>
 
-        {/* 안내문은 댓글 목록과 다른 톤(더 작고, 배경 분리)으로 둬서 실제
-            콘텐츠(댓글)와 섞이지 않게 합니다. */}
-        <div className="rounded-lg border border-amber-500/20 bg-[#1f2025] p-4">
-          <p className="flex gap-2 text-caption">
-            <Info className="mt-0.5 size-4 shrink-0 text-amber-500" aria-hidden />
-            <span>
-              수집한 댓글 {coverage.collected.toLocaleString()}개 중 시점을
-              적은 것은{" "}
-              <strong className="text-foreground">{coverage.total.toLocaleString()}개</strong>({sharePct.toFixed(1)}
-              %)입니다.
-              {coverage.timestampOnly > 0 && (
-                <>
-                  {" "}
-                  그중 {coverage.timestampOnly}개는 타임스탬프만 나열해 인용에서
-                  제외했습니다.
-                </>
-              )}{" "}
-              {coverage.quotable < 50
-                ? "지점별 근거가 적은 것은 분석이 놓쳐서가 아니라 원래 시점을 적는 사람이 이만큼뿐이기 때문입니다. 댓글을 더 수집하면 이 숫자도 늘어납니다."
-                : "시점을 적는 사람은 원래 전체의 2% 안팎이라, 댓글을 더 수집할수록 이 숫자도 비례해 늘어납니다."}
-            </span>
-          </p>
-        </div>
-
+      <div className="mt-6">
         <CommentQuoteList
           comments={list}
           emptyText="시점을 언급한 댓글이 없습니다."
           initialVisible={8}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </CollapsibleSection>
   );
 }
 

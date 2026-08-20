@@ -17,6 +17,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useReducedMotion } from "framer-motion";
 import { CHART, SENTIMENT_COLORS, SENTIMENT_LABELS_KO } from "@/lib/palette";
 import { formatSeconds } from "@/lib/utils";
 import type { HeatPeak, HeatSegment, Sentiment } from "@/lib/types";
@@ -78,6 +79,7 @@ export function SentimentDonut({
 }: {
   counts: Record<Sentiment, number>;
 }) {
+  const reducedMotion = useReducedMotion() ?? false;
   const order: Sentiment[] = ["positive", "neutral", "negative", "mixed"];
   const total = order.reduce((s, k) => s + (counts[k] ?? 0), 0);
   const data = order
@@ -99,6 +101,9 @@ export function SentimentDonut({
                 paddingAngle={2}
                 stroke="hsl(223 45% 8%)"
                 strokeWidth={2}
+                isAnimationActive={!reducedMotion}
+                animationDuration={900}
+                animationEasing="ease-out"
               >
                 {data.map((d) => (
                   <Cell key={d.key} fill={SENTIMENT_COLORS[d.key]} />
@@ -245,6 +250,7 @@ export function HeatmapArea({
 // ── Daily comment histogram ──────────────────────────────────────────────────
 
 export function DailyBars({ data }: { data: { date: string; count: number }[] }) {
+  const reducedMotion = useReducedMotion() ?? false;
   if (data.length === 0) {
     return <p className="text-body text-muted-foreground">데이터가 없습니다.</p>;
   }
@@ -273,7 +279,14 @@ export function DailyBars({ data }: { data: { date: string; count: number }[] })
                 "댓글",
               ]}
             />
-            <Bar dataKey="count" fill={CHART.violet} radius={[4, 4, 0, 0]} maxBarSize={18} />
+            <Bar
+              dataKey="count"
+              fill={CHART.violet}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={18}
+              isAnimationActive={!reducedMotion}
+              animationDuration={500}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

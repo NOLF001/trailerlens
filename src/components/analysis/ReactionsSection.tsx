@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { Quote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { CommentQuoteList } from "@/components/analysis/CommentQuote";
 import { CHART } from "@/lib/palette";
 import { formatPercent } from "@/lib/utils";
@@ -29,9 +30,11 @@ const REACTION_COLORS: Record<ReactionKind, string> = {
 export function ReactionsSection({
   hype,
   analyzedCount,
+  analysisId,
 }: {
   hype: HypeReport;
   analyzedCount: number;
+  analysisId: string;
 }) {
   const [active, setActive] = useState<ReactionKind | null>(hype.groups[0]?.kind ?? null);
   const group = hype.groups.find((g) => g.kind === active) ?? hype.groups[0] ?? null;
@@ -122,23 +125,25 @@ export function ReactionsSection({
       </div>
 
       {/* 가장 강한 반응 */}
-      <Card>
-        <CardContent className="p-5">
-          <h2 className="flex items-center gap-2 text-heading font-semibold">
-            <Quote className="size-4 text-primary" aria-hidden />
-            가장 강하게 반응한 댓글
-          </h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            표현 강도와 좋아요 수를 함께 반영해 정렬했습니다. 원문 그대로입니다.
-          </p>
-          <div className="mt-4">
-            <CommentQuoteList
-              comments={hype.topReactions}
-              emptyText="표시할 댓글이 없습니다."
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <CollapsibleSection
+        id={`${analysisId}:top-reactions`}
+        title="가장 강하게 반응한 댓글"
+        teaser="표현 강도와 좋아요 수를 함께 반영해 정렬"
+        previewGlyph={
+          <span className="text-heading font-bold tabular-nums text-foreground">
+            {hype.topReactions.length}
+          </span>
+        }
+      >
+        <p className="-mt-1 mb-3 flex items-center gap-2 text-caption text-muted-foreground">
+          <Quote className="size-4 shrink-0 text-primary" aria-hidden />
+          원문 그대로입니다.
+        </p>
+        <CommentQuoteList
+          comments={hype.topReactions}
+          emptyText="표시할 댓글이 없습니다."
+        />
+      </CollapsibleSection>
     </div>
   );
 }

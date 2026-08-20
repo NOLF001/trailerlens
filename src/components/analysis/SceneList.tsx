@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Reveal } from "@/components/ui/collapsible-section";
 import { formatSeconds } from "@/lib/utils";
 import { TOPIC_LABELS_KO, type SceneInfo, type Topic } from "@/lib/types";
 import { seekPlayer } from "@/components/analysis/PlayerPanel";
@@ -27,9 +28,9 @@ export function SceneList({
   return (
     <ol className="space-y-3">
       {scenes.map((scene) => (
-        <li key={scene.id}>
+        <Reveal key={scene.id} as="li">
           <SceneCard analysisId={analysisId} scene={scene} />
-        </li>
+        </Reveal>
       ))}
     </ol>
   );
