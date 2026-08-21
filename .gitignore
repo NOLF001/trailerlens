@@ -34,6 +34,8 @@ test-results/
 *.tsbuildinfo
 .env.bak
 .env.backup
+.secrets/
+cookies*.txt
 
 # 데이터 이관 산출물
 data-export.json
