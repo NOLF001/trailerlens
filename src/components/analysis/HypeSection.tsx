@@ -102,6 +102,8 @@ export function HypeSection({
                 const m = moments.find((x) => x.rank === rank);
                 if (m) seekPlayer(m.startSec);
               }}
+              // 유튜브 재생바처럼 열광 지점이 아닌 곳을 눌러도 이동합니다.
+              onSeek={(sec) => seekPlayer(Math.floor(sec))}
             />
           </CardContent>
         </Card>
