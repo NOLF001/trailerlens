@@ -2,23 +2,16 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import { SPAM_THRESHOLD } from "@/lib/analysis/spam";
+import {
+  buildCommentOrderBy,
+  buildCommentWhere,
+  commentFilterSchema,
+} from "@/lib/comment-filters";
 
-const querySchema = z.object({
-  q: z.string().max(200).optional(),
-  language: z.string().max(10).optional(),
-  topic: z.string().max(40).optional(),
-  sentiment: z.enum(["positive", "neutral", "negative", "mixed"]).optional(),
-  type: z.enum(["all", "top", "reply"]).optional().default("all"),
-  minLikes: z.coerce.number().int().min(0).optional(),
-  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  hasTimestamp: z.enum(["true", "false"]).optional(),
-  includeNoise: z.enum(["true", "false"]).optional().default("false"),
-  sort: z.enum(["likes", "recent"]).optional().default("likes"),
+const querySchema = commentFilterSchema.extend({
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(50),
 });
@@ -43,37 +36,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
   const qp = parsed.data;
 
-  const where: Prisma.CommentWhereInput = { videoId: analysis.videoId };
-
-  if (qp.q) where.textOriginal = { contains: qp.q };
-  if (qp.language) where.detectedLanguage = qp.language;
-  if (qp.sentiment) where.sentiment = qp.sentiment;
-  if (qp.type === "top") where.isReply = false;
-  if (qp.type === "reply") where.isReply = true;
-  if (qp.minLikes) where.likeCount = { gte: qp.minLikes };
-  if (qp.topic) where.topics = { contains: `"${qp.topic}"` };
-  if (qp.dateFrom || qp.dateTo) {
-    where.publishedAt = {
-      ...(qp.dateFrom ? { gte: new Date(`${qp.dateFrom}T00:00:00.000Z`) } : {}),
-      ...(qp.dateTo ? { lte: new Date(`${qp.dateTo}T23:59:59.999Z`) } : {}),
-    };
-  }
-  if (qp.hasTimestamp === "true") {
-    where.AND = [
-      { extractedTimestamps: { not: null } },
-      { extractedTimestamps: { not: "[]" } },
-    ];
-  }
-  if (qp.includeNoise !== "true") {
-    where.isDuplicateExtra = false;
-    where.OR = [
-      { spamProbability: null },
-      { spamProbability: { lt: SPAM_THRESHOLD } },
-    ];
-  }
-
-  const orderBy: Prisma.CommentOrderByWithRelationInput =
-    qp.sort === "recent" ? { publishedAt: "desc" } : { likeCount: "desc" };
+  const where = buildCommentWhere(analysis.videoId, qp);
+  const orderBy = buildCommentOrderBy(qp);
 
   const [total, rows] = await Promise.all([
     prisma.comment.count({ where }),

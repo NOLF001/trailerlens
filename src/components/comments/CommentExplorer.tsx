@@ -4,7 +4,14 @@
 // comments via server-side filtering + pagination (50/page).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, CornerDownRight, Loader2, Search } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CornerDownRight,
+  Download,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +84,24 @@ export function CommentExplorer({
     p.set("pageSize", "50");
     return p.toString();
   }, [filters, page]);
+
+  // 기본값과 다른 필터가 하나라도 걸려 있는지 — 내보내기 버튼 구성에 씁니다.
+  const filterActive = useMemo(
+    () =>
+      Boolean(
+        filters.q ||
+          filters.language ||
+          filters.topic ||
+          filters.sentiment ||
+          filters.type !== "all" ||
+          filters.minLikes ||
+          filters.dateFrom ||
+          filters.dateTo ||
+          filters.hasTimestamp ||
+          filters.includeNoise,
+      ),
+    [filters],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -225,7 +250,7 @@ export function CommentExplorer({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
         <span aria-live="polite">
           {loading ? (
             <span className="inline-flex items-center gap-1">
@@ -235,6 +260,12 @@ export function CommentExplorer({
             `${(data?.total ?? 0).toLocaleString()}개 댓글`
           )}
         </span>
+        <ExportButtons
+          analysisId={analysisId}
+          filterQuery={queryString}
+          filtered={filterActive}
+          filteredCount={data?.total ?? 0}
+        />
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -270,6 +301,40 @@ export function CommentExplorer({
         <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
           조건에 맞는 댓글이 없습니다.
         </p>
+      )}
+    </div>
+  );
+}
+
+/** 엑셀 내보내기. 파일이 클 수 있어 fetch로 메모리에 담지 않고 브라우저가
+ *  바로 디스크로 받게 합니다. */
+function ExportButtons({
+  analysisId,
+  filterQuery,
+  filtered,
+  filteredCount,
+}: {
+  analysisId: string;
+  filterQuery: string;
+  filtered: boolean;
+  filteredCount: number;
+}) {
+  const base = `/api/analyses/${analysisId}/comments/export`;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button asChild variant="outline" size="sm">
+        <a href={base} download>
+          <Download aria-hidden />
+          전체 댓글 엑셀
+        </a>
+      </Button>
+      {filtered && (
+        <Button asChild variant="outline" size="sm">
+          <a href={`${base}?${filterQuery}`} download>
+            <Download aria-hidden />
+            필터 결과 {filteredCount.toLocaleString()}개
+          </a>
+        </Button>
       )}
     </div>
   );
