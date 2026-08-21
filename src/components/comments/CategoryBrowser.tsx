@@ -78,8 +78,28 @@ export function CategoryBrowser({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-1.5 rounded-lg border bg-card p-3">
+        {data.groups.map((g) => (
+          <button
+            key={g.topic}
+            type="button"
+            onClick={() =>
+              document
+                .getElementById(`cat-${g.topic}`)
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent hover:text-foreground"
+          >
+            {TOPIC_LABELS_KO[g.topic as Topic] ?? g.topic}
+            <Badge variant="muted" className="tabular-nums text-[10px]">
+              {g.count.toLocaleString()}
+            </Badge>
+          </button>
+        ))}
+      </div>
+
       {data.groups.map((g) => (
-        <Card key={g.topic}>
+        <Card key={g.topic} id={`cat-${g.topic}`}>
           <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle>{TOPIC_LABELS_KO[g.topic as Topic] ?? g.topic}</CardTitle>
