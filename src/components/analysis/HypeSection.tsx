@@ -45,9 +45,19 @@ export function HypeSection({
   const [selected, setSelected] = useState<number>(moments[0]?.rank ?? 1);
   const current = moments.find((m) => m.rank === selected) ?? moments[0] ?? null;
 
-  const mentionSeconds = moments.flatMap((m) =>
-    m.comments.map((c) => c.timestampSec).filter((t): t is number => t != null),
-  );
+  // 눈금은 시점을 적은 댓글 "전체"에서 뽑습니다. 예전에는 열광 지점에 붙은
+  // 댓글에서만 뽑아서, 어느 지점에도 안 걸린 시점 언급이 타임라인에서 통째로
+  // 빠져 보였습니다(실측 92건 중 33건 누락). 지점 밖에 사람들이 반응한 자리가
+  // 있다는 것 자체가 정보라서 전부 찍습니다.
+  const allTimestamped = report.hype?.timestampedComments;
+  const mentionSeconds = (
+    allTimestamped && allTimestamped.length > 0
+      ? allTimestamped
+      : // 이 필드가 없는 예전 보고서는 기존 방식으로 물러납니다.
+        moments.flatMap((m) => m.comments)
+  )
+    .map((c) => c.timestampSec)
+    .filter((t): t is number => t != null);
 
   const hasHeatmap = report.heatmap.segments.length > 0;
 
