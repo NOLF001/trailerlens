@@ -96,12 +96,35 @@ model Analysis {
   updatedAt   DateTime  @updatedAt
   completedAt DateTime?
 
-  video  Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  scenes SceneCluster[]
+  video       Video            @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  scenes      SceneCluster[]
+  momentEdits HypeMomentEdit[]
 
   @@index([videoId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// 사용자가 열광 지점에 직접 손댄 내용. 보고서를 다시 만들어도 살아남아야 해서
+/// reportJson이 아니라 별도 테이블에 둡니다.
+///   origin = "manual" → 사용자가 직접 지정한 구간 (자동 탐지와 무관하게 항상 표시)
+///   origin = "auto"   → 자동 탐지된 구간에 붙인 설명 / 숨김 표시.
+///                       자동 구간은 재계산 때마다 경계가 조금씩 달라질 수 있어
+///                       id가 아니라 시간 구간 겹침으로 다시 이어 붙입니다.
+model HypeMomentEdit {
+  id          String   @id @default(cuid())
+  analysisId  String
+  startSec    Float
+  endSec      Float
+  description String?
+  origin      String   @default("manual") // manual | auto
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
 }
 
 model HeatmapSegment {

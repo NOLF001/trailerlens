@@ -231,7 +231,7 @@ export interface HypeComment {
 }
 
 /** 이 구간이 무엇을 근거로 뽑혔는지. */
-export type MomentEvidence = "heatmap" | "comments" | "both";
+export type MomentEvidence = "heatmap" | "comments" | "both" | "manual";
 
 export interface HypeMoment {
   rank: number;
@@ -245,6 +245,22 @@ export interface HypeMoment {
   topics: Topic[];
   evidence: MomentEvidence;
   comments: HypeComment[];
+  /** 사용자가 직접 지정한 구간이면 "manual". 없으면 자동 탐지. */
+  origin?: "auto" | "manual";
+  /** 이 구간의 영상 내용 설명 — 사용자가 직접 적습니다. 자동 생성하지 않습니다. */
+  description?: string | null;
+  /** 이 구간에 연결된 HypeMomentEdit 행 id. 편집·삭제에 씁니다. */
+  editId?: string | null;
+}
+
+/** 사용자가 열광 지점에 직접 손댄 내용 (DB의 HypeMomentEdit 한 행). */
+export interface MomentEdit {
+  id: string;
+  startSec: number;
+  endSec: number;
+  description: string | null;
+  origin: "auto" | "manual";
+  hidden: boolean;
 }
 
 export interface ReactionGroup {
@@ -262,6 +278,8 @@ export interface HypeReport {
   groups: ReactionGroup[];
   /** 반응 유형이 하나도 잡히지 않은 댓글 수. */
   unclassifiedCount: number;
+  /** 사용자가 숨긴 자동 지점. 되돌릴 수 있게 화면에 남겨둡니다. */
+  hiddenMoments?: { id: string; startSec: number; endSec: number }[];
   /**
    * 영상 시점을 언급한 댓글 전체. 어느 열광 지점에도 붙지 않은 것까지 포함해
    * 시간순으로 정렬합니다.

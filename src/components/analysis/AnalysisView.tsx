@@ -100,7 +100,14 @@ export function AnalysisView({ id }: { id: string }) {
   }
 
   if (data.status === "completed" && data.report) {
-    return <ReportView analysisId={id} report={data.report} />;
+    return (
+      <ReportView
+        analysisId={id}
+        report={data.report}
+        // 보고서를 고친 뒤(열광 지점 편집 등) 전체 새로고침 없이 다시 받아옵니다.
+        onDataChanged={() => setPollKey((k) => k + 1)}
+      />
+    );
   }
 
   // 댓글/답글 수집(1~2단계)이 끝나면 그 뒤 단계(분석 등)가 실패하거나

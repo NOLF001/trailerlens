@@ -13,6 +13,7 @@ import type {
   HypeComment,
   HypeMoment,
   HypeReport,
+  MomentEdit,
   MomentEvidence,
   ReactionGroup,
   ReactionKind,
@@ -179,11 +180,14 @@ export function buildHypeMoments({
   heatmap,
   durationSeconds,
   maxMoments = 6,
+  edits = [],
 }: {
   comments: HypeCommentInput[];
   heatmap: HeatSegment[];
   durationSeconds: number;
   maxMoments?: number;
+  /** 사용자가 직접 손댄 지점(추가·설명·숨김). 자동 탐지 결과 위에 덮어씁니다. */
+  edits?: MomentEdit[];
 }): HypeMoment[] {
   const normalized = normalizeSegments(heatmap);
   // 90초짜리 트레일러에서 12초 간격은 너무 성깁니다. 길이에 맞춰 조정합니다.
@@ -266,12 +270,12 @@ export function buildHypeMoments({
     };
   });
 
-  const maxWeight = Math.max(...withMembers.map((c) => c.likeWeighted), 0.0001);
+  const autoMaxWeight = Math.max(...withMembers.map((c) => c.likeWeighted), 0.0001);
 
   const ranked = withMembers
     .map((c) => ({
       ...c,
-      score: 0.65 * (c.heat ?? 0) + 0.35 * (c.likeWeighted / maxWeight),
+      score: 0.65 * (c.heat ?? 0) + 0.35 * (c.likeWeighted / autoMaxWeight),
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -283,34 +287,111 @@ export function buildHypeMoments({
     if (!overlaps) selected.push(c);
   }
 
-  return selected.map((c, i) => {
-    const topicCounter = new Map<Topic, number>();
-    for (const cm of c.members) {
-      for (const t of cm.topics) {
-        if (t === "other") continue;
-        topicCounter.set(t, (topicCounter.get(t) ?? 0) + 1);
-      }
-    }
+  // ── 사용자가 손댄 내용 반영 ────────────────────────────────────────────────
+  // 자동 탐지는 그대로 두고, 그 위에 설명/숨김을 덮고 직접 지정한 구간을 더합니다.
+  const overlapsRange = (
+    a: { startSec: number; endSec: number },
+    b: { startSec: number; endSec: number },
+  ) => a.startSec < b.endSec && a.endSec > b.startSec;
 
-    const evidence: MomentEvidence =
-      c.fromHeat && c.members.length > 0 ? "both" : c.fromHeat ? "heatmap" : "comments";
+  const autoEdits = edits.filter((e) => e.origin === "auto");
+  const manualEdits = edits.filter((e) => e.origin === "manual" && !e.hidden);
 
+  type Built = {
+    startSec: number;
+    endSec: number;
+    heat: number | null;
+    members: HypeCommentInput[];
+    mentionCount: number;
+    likeWeighted: number;
+    fromHeat: boolean;
+    origin: "auto" | "manual";
+    description: string | null;
+    editId: string | null;
+  };
+
+  const autoBuilt: Built[] = selected
+    .map((c) => {
+      const edit = autoEdits.find((e) => overlapsRange(e, c));
+      return {
+        ...c,
+        origin: "auto" as const,
+        description: edit?.description ?? null,
+        editId: edit?.id ?? null,
+        hidden: edit?.hidden ?? false,
+      };
+    })
+    .filter((c) => !c.hidden)
+    // 사용자가 직접 지정한 구간과 겹치면 사용자 쪽을 남깁니다 — 같은 장면이
+    // 자동/수동으로 두 번 뜨는 것을 막습니다.
+    .filter((c) => !manualEdits.some((m) => overlapsRange(m, c)));
+
+  const manualBuilt: Built[] = manualEdits.map((e) => {
+    const startSec = Math.max(0, Math.min(e.startSec, durationSeconds));
+    const endSec = Math.max(startSec + 1, Math.min(e.endSec, durationSeconds));
+    const members = comments.filter((cm) =>
+      cm.timestamps.some((t) => t >= startSec - 2 && t < endSec + 2),
+    );
     return {
-      rank: i + 1,
-      startSec: c.startSec,
-      endSec: c.endSec,
-      heat: c.heat,
-      mentionCount: c.mentionCount,
-      likeWeighted: c.likeWeighted,
-      topics: [...topicCounter.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([t]) => t),
-      evidence,
-      // 근거는 자르지 않고 전부 담습니다. 화면에서 접었다 펼칩니다.
-      comments: pickComments(c.members, Number.POSITIVE_INFINITY, (c.startSec + c.endSec) / 2),
+      startSec,
+      endSec,
+      heat: heatOverRange(normalized, startSec, endSec),
+      members,
+      mentionCount: members.length,
+      likeWeighted: members.reduce((sum, cm) => sum + likeWeight(cm.likeCount), 0),
+      fromHeat: false,
+      origin: "manual" as const,
+      description: e.description,
+      editId: e.id,
     };
   });
+
+  const combined = [...autoBuilt, ...manualBuilt];
+  const maxWeight = Math.max(...combined.map((c) => c.likeWeighted), 0.0001);
+
+  return combined
+    .map((c) => ({
+      ...c,
+      score: 0.65 * (c.heat ?? 0) + 0.35 * (c.likeWeighted / maxWeight),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map((c, i) => {
+      const topicCounter = new Map<Topic, number>();
+      for (const cm of c.members) {
+        for (const t of cm.topics) {
+          if (t === "other") continue;
+          topicCounter.set(t, (topicCounter.get(t) ?? 0) + 1);
+        }
+      }
+
+      const evidence: MomentEvidence =
+        c.origin === "manual"
+          ? "manual"
+          : c.fromHeat && c.members.length > 0
+            ? "both"
+            : c.fromHeat
+              ? "heatmap"
+              : "comments";
+
+      return {
+        rank: i + 1,
+        startSec: c.startSec,
+        endSec: c.endSec,
+        heat: c.heat,
+        mentionCount: c.mentionCount,
+        likeWeighted: c.likeWeighted,
+        topics: [...topicCounter.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([t]) => t),
+        evidence,
+        origin: c.origin,
+        description: c.description,
+        editId: c.editId,
+        // 근거는 자르지 않고 전부 담습니다. 화면에서 접었다 펼칩니다.
+        comments: pickComments(c.members, Number.POSITIVE_INFINITY, (c.startSec + c.endSec) / 2),
+      };
+    });
 }
 
 /** 시점과 무관하게, 사람들이 "무엇에" 반응했는지를 유형별로 묶습니다. */
@@ -387,18 +468,23 @@ export function buildHypeReport({
   comments,
   heatmap,
   durationSeconds,
+  edits = [],
 }: {
   comments: HypeCommentInput[];
   heatmap: HeatSegment[];
   durationSeconds: number;
+  edits?: MomentEdit[];
 }): HypeReport {
   const { groups, topReactions, unclassifiedCount } = buildReactionGroups(comments);
   const { list, coverage } = collectTimestampedComments(comments);
   return {
-    moments: buildHypeMoments({ comments, heatmap, durationSeconds }),
+    moments: buildHypeMoments({ comments, heatmap, durationSeconds, edits }),
     topReactions,
     groups,
     unclassifiedCount,
+    hiddenMoments: edits
+      .filter((e) => e.hidden)
+      .map((e) => ({ id: e.id, startSec: e.startSec, endSec: e.endSec })),
     timestampedComments: list,
     timestampCoverage: coverage,
   };

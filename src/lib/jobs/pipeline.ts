@@ -806,10 +806,24 @@ async function stepScenesAndReport(
     timestamps: safeJsonParse<number[]>(r.extractedTimestamps, []),
     topics: safeJsonParse<Topic[]>(r.topics, []),
   }));
+  // 사용자가 직접 손댄 지점은 보고서를 다시 만들어도 유지되어야 하므로
+  // reportJson이 아니라 별도 테이블에서 매번 다시 읽어옵니다.
+  const momentEdits = await prisma.hypeMomentEdit.findMany({
+    where: { analysisId },
+    orderBy: { startSec: "asc" },
+  });
   const hype = buildHypeReport({
     comments: hypeInputs,
     heatmap: heatmap.segments,
     durationSeconds: video.durationSeconds,
+    edits: momentEdits.map((e) => ({
+      id: e.id,
+      startSec: e.startSec,
+      endSec: e.endSec,
+      description: e.description,
+      origin: e.origin === "manual" ? "manual" : "auto",
+      hidden: e.hidden,
+    })),
   });
 
   const report = buildReportPayload({

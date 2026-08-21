@@ -12,6 +12,11 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { HypeTimeline } from "@/components/analysis/HypeTimeline";
 import { CommentQuoteList } from "@/components/analysis/CommentQuote";
 import { PlayerPanel, seekPlayer } from "@/components/analysis/PlayerPanel";
+import {
+  AddMomentForm,
+  HiddenMomentsNotice,
+  MomentControls,
+} from "@/components/analysis/MomentEditor";
 import { CHART } from "@/lib/palette";
 import { formatSeconds } from "@/lib/utils";
 import { TOPIC_LABELS_KO, type HypeMoment, type Report } from "@/lib/types";
@@ -20,10 +25,23 @@ const EVIDENCE_LABEL: Record<HypeMoment["evidence"], string> = {
   both: "재생 기록 + 댓글",
   heatmap: "재생 기록",
   comments: "댓글",
+  manual: "직접 지정",
 };
 
-export function HypeSection({ report, analysisId }: { report: Report; analysisId: string }) {
+export function HypeSection({
+  report,
+  analysisId,
+  onDataChanged,
+}: {
+  report: Report;
+  analysisId: string;
+  onDataChanged?: () => void;
+}) {
   const moments = report.hype?.moments ?? [];
+  const hiddenMoments = report.hype?.hiddenMoments ?? [];
+  // 편집 후에는 폴링을 한 번 더 돌려 새 보고서를 받아옵니다. 콜백이 없으면
+  // (구버전 호출부) 전체 새로고침으로 물러납니다.
+  const refresh = onDataChanged ?? (() => window.location.reload());
   const [selected, setSelected] = useState<number>(moments[0]?.rank ?? 1);
   const current = moments.find((m) => m.rank === selected) ?? moments[0] ?? null;
 
@@ -36,9 +54,23 @@ export function HypeSection({ report, analysisId }: { report: Report; analysisId
   if (moments.length === 0) {
     return (
       <Card>
-        <CardContent className="p-10 text-center text-body text-muted-foreground">
-          열광 지점을 만들 근거가 없습니다. 최다 재생 구간 데이터도, 시점을 언급한
-          댓글도 확보되지 않았습니다.
+        <CardContent className="space-y-4 p-10 text-center text-body text-muted-foreground">
+          <p>
+            열광 지점을 만들 근거가 없습니다. 최다 재생 구간 데이터도, 시점을 언급한
+            댓글도 확보되지 않았습니다.
+          </p>
+          <div className="flex justify-center">
+            <AddMomentForm
+              analysisId={analysisId}
+              durationSeconds={report.video.durationSeconds}
+              onDone={refresh}
+            />
+          </div>
+          <HiddenMomentsNotice
+            analysisId={analysisId}
+            hidden={hiddenMoments}
+            onDone={refresh}
+          />
         </CardContent>
       </Card>
     );
@@ -86,8 +118,20 @@ export function HypeSection({ report, analysisId }: { report: Report; analysisId
 
       {/* 지점 선택 카드 — 1번은 primary, 나머지는 secondary */}
       <div>
-        <h2 className="mb-4 text-heading font-semibold">열광 지점 {moments.length}곳</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-heading font-semibold">열광 지점 {moments.length}곳</h2>
+          <AddMomentForm
+            analysisId={analysisId}
+            durationSeconds={report.video.durationSeconds}
+            onDone={refresh}
+          />
+        </div>
+        <HiddenMomentsNotice
+          analysisId={analysisId}
+          hidden={hiddenMoments}
+          onDone={refresh}
+        />
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {moments.map((m) => (
             <MomentCard
               key={m.rank}
@@ -103,7 +147,9 @@ export function HypeSection({ report, analysisId }: { report: Report; analysisId
       </div>
 
       {/* 선택된 지점 상세 */}
-      {current && <MomentDetail moment={current} />}
+      {current && (
+        <MomentDetail moment={current} analysisId={analysisId} onDataChanged={refresh} />
+      )}
 
       {/* 시점을 언급한 댓글 전체 */}
       <AllTimestampComments report={report} analysisId={analysisId} />
@@ -249,11 +295,25 @@ function MomentCard({
           언급 댓글 {moment.mentionCount}개
         </span>
       </div>
+
+      {moment.description && (
+        <p className="mt-2.5 line-clamp-2 text-caption text-muted-foreground">
+          {moment.description}
+        </p>
+      )}
     </button>
   );
 }
 
-function MomentDetail({ moment }: { moment: HypeMoment }) {
+function MomentDetail({
+  moment,
+  analysisId,
+  onDataChanged,
+}: {
+  moment: HypeMoment;
+  analysisId: string;
+  onDataChanged: () => void;
+}) {
   return (
     // Heading → Metrics → Evidence → Comments 순서로 읽히게 합니다.
     <Card className="border-primary/25">
@@ -298,6 +358,12 @@ function MomentDetail({ moment }: { moment: HypeMoment }) {
             hint="언급 댓글에서 집계"
           />
         </dl>
+
+        <MomentControls
+          analysisId={analysisId}
+          moment={moment}
+          onDone={onDataChanged}
+        />
 
         {moment.evidence === "heatmap" && (
           <p className="flex gap-2 rounded-lg bg-muted/50 p-3 text-caption">
