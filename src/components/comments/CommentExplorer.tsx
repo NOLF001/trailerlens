@@ -23,6 +23,8 @@ interface Filters {
   sentiment: string;
   type: string;
   minLikes: string;
+  dateFrom: string;
+  dateTo: string;
   hasTimestamp: boolean;
   includeNoise: boolean;
   sort: string;
@@ -35,6 +37,8 @@ const INITIAL: Filters = {
   sentiment: "",
   type: "all",
   minLikes: "",
+  dateFrom: "",
+  dateTo: "",
   hasTimestamp: false,
   includeNoise: false,
   sort: "likes",
@@ -64,6 +68,8 @@ export function CommentExplorer({
     if (filters.sentiment) p.set("sentiment", filters.sentiment);
     if (filters.type !== "all") p.set("type", filters.type);
     if (filters.minLikes) p.set("minLikes", filters.minLikes);
+    if (filters.dateFrom) p.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo) p.set("dateTo", filters.dateTo);
     if (filters.hasTimestamp) p.set("hasTimestamp", "true");
     if (filters.includeNoise) p.set("includeNoise", "true");
     p.set("sort", filters.sort);
@@ -168,6 +174,25 @@ export function CommentExplorer({
           placeholder="최소 좋아요 수"
           aria-label="최소 좋아요 수"
         />
+        <div className="flex items-center gap-1.5">
+          <Input
+            type="date"
+            value={filters.dateFrom}
+            max={filters.dateTo || undefined}
+            onChange={(e) => update("dateFrom", e.target.value)}
+            aria-label="시작 날짜"
+            className="min-w-0"
+          />
+          <span className="text-muted-foreground">–</span>
+          <Input
+            type="date"
+            value={filters.dateTo}
+            min={filters.dateFrom || undefined}
+            onChange={(e) => update("dateTo", e.target.value)}
+            aria-label="종료 날짜"
+            className="min-w-0"
+          />
+        </div>
         <Select
           value={filters.sort}
           onChange={(e) => update("sort", e.target.value)}

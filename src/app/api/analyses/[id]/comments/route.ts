@@ -14,6 +14,8 @@ const querySchema = z.object({
   sentiment: z.enum(["positive", "neutral", "negative", "mixed"]).optional(),
   type: z.enum(["all", "top", "reply"]).optional().default("all"),
   minLikes: z.coerce.number().int().min(0).optional(),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   hasTimestamp: z.enum(["true", "false"]).optional(),
   includeNoise: z.enum(["true", "false"]).optional().default("false"),
   sort: z.enum(["likes", "recent"]).optional().default("likes"),
@@ -50,6 +52,12 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (qp.type === "reply") where.isReply = true;
   if (qp.minLikes) where.likeCount = { gte: qp.minLikes };
   if (qp.topic) where.topics = { contains: `"${qp.topic}"` };
+  if (qp.dateFrom || qp.dateTo) {
+    where.publishedAt = {
+      ...(qp.dateFrom ? { gte: new Date(`${qp.dateFrom}T00:00:00.000Z`) } : {}),
+      ...(qp.dateTo ? { lte: new Date(`${qp.dateTo}T23:59:59.999Z`) } : {}),
+    };
+  }
   if (qp.hasTimestamp === "true") {
     where.AND = [
       { extractedTimestamps: { not: null } },
