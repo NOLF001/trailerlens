@@ -35,12 +35,14 @@ FROM base AS runner
 ENV NODE_ENV=production
 # yt-dlp는 유튜브 '가장 많이 다시 본 구간'(열광 지점의 핵심 근거)을 가져오는 데
 # 필요합니다. 없으면 앱은 뜨지만 히트맵이 비어 열광 지점이 댓글 근거만 남습니다.
-# alpine 저장소에 없을 때를 대비해 musl용 정적 바이너리로 대체합니다.
-RUN apk add --no-cache yt-dlp \
-  || ( apk add --no-cache ca-certificates \
-       && wget -qO /usr/local/bin/yt-dlp \
-            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_musllinux \
-       && chmod +x /usr/local/bin/yt-dlp )
+# pip로 설치해야 연령 제한 영상용 쿠키 인증이 필요할 때 yt-dlp-ejs(JS 챌린지
+# 솔버) 플러그인이 잡힙니다 — apk 패키지나 정적 바이너리는 플러그인을 못 찾습니다.
+# 별도 venv에 넣는 건 Alpine의 PEP 668(externally-managed-environment) 제한을
+# 피하기 위함입니다. JS 런타임은 이 이미지의 Node를 그대로 씁니다.
+RUN apk add --no-cache python3 py3-pip \
+  && python3 -m venv /opt/yt-dlp-venv \
+  && /opt/yt-dlp-venv/bin/pip install --no-cache-dir yt-dlp yt-dlp-ejs \
+  && ln -s /opt/yt-dlp-venv/bin/yt-dlp /usr/local/bin/yt-dlp
 RUN yt-dlp --version
 COPY --from=build /app ./
 EXPOSE 3000

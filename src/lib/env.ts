@@ -17,6 +17,8 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().optional().default("claude-opus-5"),
   ENABLE_EXPERIMENTAL_YTDLP: boolFromString,
   YTDLP_PATH: z.string().optional().default("yt-dlp"),
+  YTDLP_COOKIES_PATH: z.string().optional().default(""),
+  YTDLP_COOKIES_B64: z.string().optional().default(""),
   FFMPEG_PATH: z.string().optional().default("ffmpeg"),
 });
 

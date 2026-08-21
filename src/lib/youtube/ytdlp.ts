@@ -3,12 +3,34 @@
 // Values are normalized relative intensity — NOT retention or viewer counts.
 
 import { execFile } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { env, isYtdlpEnabled } from "@/lib/env";
 import { isValidVideoId } from "@/lib/youtube/url";
 import type { HeatSegment } from "@/lib/types";
 
 interface YtdlpJson {
   heatmap?: { start_time: number; end_time: number; value: number }[];
+}
+
+// Age-restricted videos need a logged-in session's cookies. YTDLP_COOKIES_B64
+// (base64 Netscape cookies.txt) is meant for environments like Railway with
+// no persistent volume — it's materialized to a temp file once per process.
+// YTDLP_COOKIES_PATH points at an already-existing cookies.txt (local dev).
+let cachedCookiesPath: string | null | undefined;
+
+function resolveCookiesPath(): string | null {
+  if (cachedCookiesPath !== undefined) return cachedCookiesPath;
+  const { YTDLP_COOKIES_B64, YTDLP_COOKIES_PATH } = env();
+  if (YTDLP_COOKIES_B64) {
+    const path = join(tmpdir(), "trailerlens-yt-cookies.txt");
+    writeFileSync(path, Buffer.from(YTDLP_COOKIES_B64, "base64"));
+    cachedCookiesPath = path;
+  } else {
+    cachedCookiesPath = YTDLP_COOKIES_PATH || null;
+  }
+  return cachedCookiesPath;
 }
 
 function run(
@@ -38,6 +60,7 @@ export async function getYtdlpHeatmap(videoId: string): Promise<HeatSegment[] | 
   if (!isValidVideoId(videoId)) return null;
 
   try {
+    const cookiesPath = resolveCookiesPath();
     const { stdout } = await run(
       env().YTDLP_PATH,
       [
@@ -45,6 +68,11 @@ export async function getYtdlpHeatmap(videoId: string): Promise<HeatSegment[] | 
         "--no-download",
         "--no-warnings",
         "--skip-download",
+        // Cookies push YouTube onto a client path that requires solving a
+        // signature/n challenge. The yt-dlp-ejs pip package (bundles its own
+        // solver script — no network fetch needed) plus Node as the runtime
+        // handles that.
+        ...(cookiesPath ? ["--cookies", cookiesPath, "--js-runtimes", "node"] : []),
         `https://www.youtube.com/watch?v=${videoId}`,
       ],
       60_000,
