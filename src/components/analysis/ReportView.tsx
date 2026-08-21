@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ExternalLink,
   Flame,
+  Heart,
   MessageSquareText,
   MessagesSquare,
   Scale,
@@ -28,6 +29,7 @@ import { CountUp, AnimatedBarFill } from "@/components/ui/count-up";
 import { SentimentDonut, DailyBars } from "@/components/analysis/charts";
 import { HypeSection } from "@/components/analysis/HypeSection";
 import { ReactionsSection } from "@/components/analysis/ReactionsSection";
+import { LikedSection } from "@/components/analysis/LikedSection";
 import { SceneList } from "@/components/analysis/SceneList";
 import { seekPlayer } from "@/components/analysis/PlayerPanel";
 import { HeatmapUpload } from "@/components/analysis/HeatmapUpload";
@@ -48,7 +50,15 @@ import {
 const TAB_CLASS =
   "gap-2 rounded-md px-4 py-2.5 text-body font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-none";
 
-export function ReportView({ analysisId, report }: { analysisId: string; report: Report }) {
+export function ReportView({
+  analysisId,
+  report,
+  onDataChanged,
+}: {
+  analysisId: string;
+  report: Report;
+  onDataChanged?: () => void;
+}) {
   const [cleaned, setCleaned] = useState(true);
   const stats = cleaned ? report.stats.cleaned : report.stats.raw;
 
@@ -66,6 +76,10 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
             <MessagesSquare className="size-4" aria-hidden />
             반응 모아보기
           </TabsTrigger>
+          <TabsTrigger value="liked" className={TAB_CLASS}>
+            <Heart className="size-4" aria-hidden />
+            댓글 분석
+          </TabsTrigger>
           <TabsTrigger value="stats" className={TAB_CLASS}>
             <Scale className="size-4" aria-hidden />
             통계
@@ -78,7 +92,11 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
 
         {/* 1. 열광 지점 — 이 화면의 주인공 */}
         <TabsContent value="hype" className="mt-0 focus-visible:outline-none">
-          <HypeSection report={report} analysisId={analysisId} />
+          <HypeSection
+            report={report}
+            analysisId={analysisId}
+            onDataChanged={onDataChanged}
+          />
         </TabsContent>
 
         {/* 2. 반응 모아보기 */}
@@ -98,7 +116,12 @@ export function ReportView({ analysisId, report }: { analysisId: string; report:
           )}
         </TabsContent>
 
-        {/* 3. 통계 — 기본 접힘. 4개 섹션이 한꺼번에 펼쳐진 채로 쏟아지던
+        {/* 3. 댓글 분석 — 좋아요 순 정렬 기준의 객관 집계 */}
+        <TabsContent value="liked" className="mt-0 focus-visible:outline-none">
+          <LikedSection analysisId={analysisId} />
+        </TabsContent>
+
+        {/* 4. 통계 — 기본 접힘. 4개 섹션이 한꺼번에 펼쳐진 채로 쏟아지던
             게 이 페이지에서 가장 부담스러운 지점이었습니다. */}
         <TabsContent value="stats" className="mt-0 focus-visible:outline-none">
           <SectionGroup>
